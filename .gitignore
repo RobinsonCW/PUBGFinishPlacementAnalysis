@@ -16,6 +16,7 @@
 
 # RStudio files
 .Rproj.user/
+*.Rproj
 
 # produced vignettes
 vignettes/*.html
@@ -34,3 +35,16 @@ vignettes/*.pdf
 
 # Shiny token, see https://shiny.rstudio.com/articles/shinyapps.html
 rsconnect/
+
+# Latex output files
+*.aux
+*.bbl
+*.blg
+cache/*
+figure/*
+*.log
+*.gz
+*.tex
+
+# Ignore CSV as they are too large for this project
+*.csv
