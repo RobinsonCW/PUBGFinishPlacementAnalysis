@@ -1,0 +1,93 @@
+---
+title: "Exploratory Data Analysis"
+author: "Chance Robinson"
+date: "11/2/2019"
+output: 
+  github_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Exploratory Data Analysis
+
+## Library Imports
+
+
+```{r library-imports, quietely=TRUE, warn.conflicts=FALSE}
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+```
+
+## Load the csv data
+
+```{r load-data}
+train <- read.csv("../../../../data/train_V2.csv", stringsAsFactors=FALSE)
+test <- read.csv("../../../../data/test_V2.csv", stringsAsFactors=FALSE)
+
+```
+
+
+## Default Output
+
+### Train
+
+```{r train-columns}
+colnames(train)
+```
+
+
+```{r head-train}
+head(train)
+# summary(train)
+# str(train)
+# dim(train)
+```
+
+
+
+```{r head-test}
+head(test)
+# summary(test)
+# str(test)
+# dim(test)
+```
+
+
+```{r}
+
+t <- 0.4444
+
+round(t, digits=2) * 100
+
+```
+
+```{r}
+df_has_na_values <- any(is.na(train))
+df_has_na_values
+
+df_na_columns = which(colSums(is.na(train)) > 0)
+df_na_columns
+
+df_na_winPlacePerc <- train %>%
+  filter(is.na(winPlacePerc))
+
+df_na_winPlacePerc
+```
+
+```{r}
+
+# Downsampling
+# SMOTE
+# Upsampling
+
+
+model <- lm(winPlacePerc~walkDistance+killPlace+boosts, data = train)
+summary(model)
+confint(model)
+```
+
