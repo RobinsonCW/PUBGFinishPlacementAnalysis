@@ -52,7 +52,7 @@ data <- data[!data$Id == 'f70c74418bb064',]
 ```{r data-significant-columns}
 cols_to_keep = c("walkDistance", "killPlace", "boosts", "weaponsAcquired", "damageDealt", "heals", "kills", "top.10")
 
-cols_to_remove = c("Id", "groupId", "matchId", "matchType", "DBNOs")
+cols_to_remove = c("Id", "groupId", "matchId", "matchType", "DBNOs", "winPlacePerc")
 
 head(data[cols_to_keep])
 
@@ -79,6 +79,11 @@ summary(data.mod)
 ```{r nb-train-test-split}
 
 set.seed(1234)
+
+data.mod <- downSample(data.mod, data.mod$top.10, list = FALSE)
+data.mod$Class <- NULL
+
+
 split.perc = .70
 
 train.indices = sample(1:dim(data.mod)[1],round(split.perc * dim(data.mod)[1]))
@@ -87,8 +92,8 @@ train = data.mod[train.indices,]
 test = data.mod[-train.indices,]
 
 
-train <- downSample(train, train$top.10, list = FALSE)
-train$Class <- NULL
+# train <- downSample(train, train$top.10, list = FALSE)
+# train$Class <- NULL
 
 
 model.nb.train <- naive_bayes(top.10 ~ ., data = train, laplace = TRUE, usekernel = TRUE)

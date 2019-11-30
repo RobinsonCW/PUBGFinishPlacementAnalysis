@@ -113,7 +113,7 @@ data <- data[!data$Id == 'f70c74418bb064',]
 ``` r
 cols_to_keep = c("walkDistance", "killPlace", "boosts", "weaponsAcquired", "damageDealt", "heals", "kills", "top.10")
 
-cols_to_remove = c("Id", "groupId", "matchId", "matchType", "DBNOs")
+cols_to_remove = c("Id", "groupId", "matchId", "matchType", "DBNOs", "winPlacePerc")
 
 head(data[cols_to_keep])
 ```
@@ -171,20 +171,13 @@ summary(data.mod)
     ##  Mean   : 0.005123   Mean   :   5.091   Mean   :0.0114   Mean   :0.004519  
     ##  3rd Qu.: 0.000000   3rd Qu.:   0.000   3rd Qu.:0.0000   3rd Qu.:0.000000  
     ##  Max.   :18.000000   Max.   :1974.000   Max.   :1.0000   Max.   :5.000000  
-    ##   walkDistance     weaponsAcquired     winPoints       winPlacePerc   
-    ##  Min.   :    0.0   Min.   :  0.000   Min.   :   0.0   Min.   :0.0000  
-    ##  1st Qu.:  100.5   1st Qu.:  2.000   1st Qu.:   0.0   1st Qu.:0.2292  
-    ##  Median :  502.7   Median :  3.000   Median :   0.0   Median :0.4839  
-    ##  Mean   :  955.7   Mean   :  3.555   Mean   : 556.9   Mean   :0.4873  
-    ##  3rd Qu.: 1588.0   3rd Qu.:  5.000   3rd Qu.:1492.0   3rd Qu.:0.7474  
-    ##  Max.   :25780.0   Max.   :153.000   Max.   :1922.0   Max.   :1.0000  
-    ##  top.10      
-    ##  No :644120  
-    ##  Yes: 74584  
-    ##              
-    ##              
-    ##              
-    ## 
+    ##   walkDistance     weaponsAcquired     winPoints      top.10      
+    ##  Min.   :    0.0   Min.   :  0.000   Min.   :   0.0   No :644120  
+    ##  1st Qu.:  100.5   1st Qu.:  2.000   1st Qu.:   0.0   Yes: 74584  
+    ##  Median :  502.7   Median :  3.000   Median :   0.0               
+    ##  Mean   :  955.7   Mean   :  3.555   Mean   : 556.9               
+    ##  3rd Qu.: 1588.0   3rd Qu.:  5.000   3rd Qu.:1492.0               
+    ##  Max.   :25780.0   Max.   :153.000   Max.   :1922.0
 
 ``` r
 # str(data.mod)
@@ -194,6 +187,11 @@ summary(data.mod)
 
 ``` r
 set.seed(1234)
+
+data.mod <- downSample(data.mod, data.mod$top.10, list = FALSE)
+data.mod$Class <- NULL
+
+
 split.perc = .70
 
 train.indices = sample(1:dim(data.mod)[1],round(split.perc * dim(data.mod)[1]))
@@ -202,8 +200,8 @@ train = data.mod[train.indices,]
 test = data.mod[-train.indices,]
 
 
-train <- downSample(train, train$top.10, list = FALSE)
-train$Class <- NULL
+# train <- downSample(train, train$top.10, list = FALSE)
+# train$Class <- NULL
 
 
 model.nb.train <- naive_bayes(top.10 ~ ., data = train, laplace = TRUE, usekernel = TRUE)
@@ -243,26 +241,26 @@ confusionMatrix(data=p1,
     ## 
     ##           Reference
     ## Prediction    No   Yes
-    ##        No  50641  9619
-    ##        Yes  1639 42661
+    ##        No  47762 15189
+    ##        Yes  4418 37049
     ##                                           
-    ##                Accuracy : 0.8923          
-    ##                  95% CI : (0.8904, 0.8942)
-    ##     No Information Rate : 0.5             
+    ##                Accuracy : 0.8122          
+    ##                  95% CI : (0.8098, 0.8146)
+    ##     No Information Rate : 0.5003          
     ##     P-Value [Acc > NIR] : < 2.2e-16       
     ##                                           
-    ##                   Kappa : 0.7847          
+    ##                   Kappa : 0.6245          
     ##                                           
     ##  Mcnemar's Test P-Value : < 2.2e-16       
     ##                                           
-    ##             Sensitivity : 0.8160          
-    ##             Specificity : 0.9686          
-    ##          Pos Pred Value : 0.9630          
-    ##          Neg Pred Value : 0.8404          
-    ##              Prevalence : 0.5000          
-    ##          Detection Rate : 0.4080          
-    ##    Detection Prevalence : 0.4237          
-    ##       Balanced Accuracy : 0.8923          
+    ##             Sensitivity : 0.7092          
+    ##             Specificity : 0.9153          
+    ##          Pos Pred Value : 0.8935          
+    ##          Neg Pred Value : 0.7587          
+    ##              Prevalence : 0.5003          
+    ##          Detection Rate : 0.3548          
+    ##    Detection Prevalence : 0.3971          
+    ##       Balanced Accuracy : 0.8123          
     ##                                           
     ##        'Positive' Class : Yes             
     ## 
@@ -277,27 +275,27 @@ confusionMatrix(data=p2,
     ## Confusion Matrix and Statistics
     ## 
     ##           Reference
-    ## Prediction     No    Yes
-    ##        No  187212   4141
-    ##        Yes   6095  18163
+    ## Prediction    No   Yes
+    ##        No  20516  6415
+    ##        Yes  1888 15931
     ##                                           
-    ##                Accuracy : 0.9525          
-    ##                  95% CI : (0.9516, 0.9534)
-    ##     No Information Rate : 0.8966          
+    ##                Accuracy : 0.8145          
+    ##                  95% CI : (0.8108, 0.8181)
+    ##     No Information Rate : 0.5006          
     ##     P-Value [Acc > NIR] : < 2.2e-16       
     ##                                           
-    ##                   Kappa : 0.7536          
+    ##                   Kappa : 0.6288          
     ##                                           
     ##  Mcnemar's Test P-Value : < 2.2e-16       
     ##                                           
-    ##             Sensitivity : 0.81434         
-    ##             Specificity : 0.96847         
-    ##          Pos Pred Value : 0.74874         
-    ##          Neg Pred Value : 0.97836         
-    ##              Prevalence : 0.10345         
-    ##          Detection Rate : 0.08424         
-    ##    Detection Prevalence : 0.11251         
-    ##       Balanced Accuracy : 0.89140         
+    ##             Sensitivity : 0.7129          
+    ##             Specificity : 0.9157          
+    ##          Pos Pred Value : 0.8940          
+    ##          Neg Pred Value : 0.7618          
+    ##              Prevalence : 0.4994          
+    ##          Detection Rate : 0.3560          
+    ##    Detection Prevalence : 0.3982          
+    ##       Balanced Accuracy : 0.8143          
     ##                                           
     ##        'Positive' Class : Yes             
     ##
