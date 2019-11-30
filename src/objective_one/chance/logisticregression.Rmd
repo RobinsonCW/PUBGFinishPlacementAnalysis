@@ -1,0 +1,160 @@
+---
+title: "Logistic Regression"
+author: "Chance Robinson"
+date: "11/30/2019"
+output: 
+  github_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Exploratory Data Analysis
+
+## Library Imports
+
+
+```{r library-imports, quietely=TRUE, warn.conflicts=FALSE}
+library(tidyverse)
+# Random Forest
+
+# downSample
+library(caret)
+```
+
+
+
+## Load the CSV Data
+
+```{r load-data}
+data <- read.csv("../../../data/pubg_solo_game_types.csv", stringsAsFactors=FALSE)
+
+```
+
+
+```{r head-data}
+head(data)
+```
+
+## Remove Missing Values
+
+```{r data-missing}
+# remove the row with no winPlacePerc   
+data <- data[!data$Id == 'f70c74418bb064',]
+```
+
+
+
+## Specify Model Columns of Interest
+
+```{r data-significant-columns}
+cols_to_keep = c("walkDistance", "killPlace", "boosts", "weaponsAcquired", "damageDealt", "heals", "kills", "top.10")
+
+cols_to_remove = c("Id", "groupId", "matchId", "matchType", "DBNOs", "winPlacePerc")
+
+head(data[cols_to_keep])
+
+
+```
+
+
+## Prepare Dataframe
+
+```{r data-preparation}
+data.mod <- data %>%
+  select(cols_to_keep) %>%
+  mutate(top.10 = factor(top.10, labels = c("No", "Yes")))
+
+
+summary(data.mod)
+
+# str(data.mod)
+
+```
+
+
+## Logistic Regression
+
+
+## Train / Test Split
+
+```{r lr-train-test-split}
+
+set.seed(1234)
+
+# sample.data <- sample_frac(data.mod, 0.10)
+
+data.mod <- downSample(data.mod, data.mod$top.10, list = FALSE)
+data.mod$Class <- NULL
+
+# head(sample.data)
+
+split.perc = .70
+
+train.indices = sample(1:dim(data.mod)[1],round(split.perc * dim(data.mod)[1]))
+
+train = data.mod[train.indices,]
+test = data.mod[-train.indices,]
+
+# train <- downSample(train, train$top.10, list = FALSE)
+# train$Class <- NULL
+
+
+model <- glm(top.10 ~ ., data = train,  family = binomial("logit"))
+
+
+# print(model.rf.train)
+# 
+# 
+train$predict <- as.factor(ifelse(model$fitted.values >0.5, "Yes", "No"))
+
+#test$predict <- as.factor(ifelse(model$fitted.values >0.5, "Yes", "No"))
+
+head(train)
+head(test)
+
+```
+
+
+
+## Logistic Regression Performance
+
+### Train
+
+
+```{r lr-summary-train}
+
+summary(model)
+# confint(model) 
+
+```
+
+
+```{r lr-performance-train}
+
+confusionMatrix(data=train$predict,  
+                reference=train$top.10, "Yes")
+
+```
+
+### Test
+```{r lr-performance-test}
+
+# test$predict <- as.factor(ifelse(model$fitted.values >0.5, "Yes", "No"))
+
+test$predict <- predict(model, test, type="response")
+test$predict <- as.factor(ifelse(test$predict >0.5, "Yes", "No"))
+
+
+confusionMatrix(data=test$predict,  
+                reference=test$top.10, "Yes")
+
+
+```
+
+
+
+
+
