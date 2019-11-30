@@ -333,5 +333,83 @@ precision
 
 
 
+```{r train-numeric-pca}
+
+
+cols.to.remove <- c("DBNOs", "revives")
+
+train.mod.numeric <- train.mod %>%
+  filter(matchType %in% c("solo", "solo-fpp")) %>%
+  select_if(is.numeric) %>%
+  select(-cols.to.remove) %>%
+  mutate(top.10 = ifelse(winPlacePerc>.9, 1, 0)) %>%
+  mutate(matchDurationLength = ifelse(matchDuration >= mean(matchDuration), 1, 0))
+
+
+head(train.mod.numeric)
+
+# table(train.mod.numeric$revives)
+
+
+pca.result <- prcomp(train.mod.numeric[1:22], scale.=TRUE)
+# pca.result <- prcomp(train.mod.numeric[1:24])
+pca.scores <- pca.result$x
+
+head(pca.scores)
+# pairs(pca.scores)
+# cor(pca.scores)
+```
+
+
+A scree plot of the eigenvalues used to determine how many pc's to keep can be plotted in the following way:
+```{r}
+par(mfrow=c(1,2))
+eigenvals <- (pca.result$sdev)^2
+plot(1:22,eigenvals/sum(eigenvals), type="l", main="Scree Plot", ylab="Prop. Var. Explained")
+cumulative.prop <- cumsum(eigenvals/sum(eigenvals))
+plot(1:22,cumulative.prop, type="l", main="Cumulative proportion", ylim=c(0,1))
+par(mfrow=c(1,1))
+
+```
+
+
+```{r}
+#Getting a look at the distribution
+table(train.mod.numeric$top.10)
+
+#Adding the response column to the PC's data frame
+pca.scores <- data.frame(pca.scores)
+pca.scores$top.10 <- as.factor(train.mod.numeric$top.10)
+pca.scores$matchDurationLength <- as.factor(train.mod.numeric$matchDurationLength)
+
+table(train.mod.numeric$matchDurationLength)
+
+# ggplot(data = pca.scores, aes(x = PC1, y = PC2)) +
+#   geom_point(aes(col=top.10), size=1)+
+#   ggtitle("PCA of PUBG Top 10%")
+
+
+```
+
+
+
+```{r}
+
+# , shape = matchDurationLength
+
+plotPC <- function(mydata) {
+  sampleData <- sample_frac(mydata, 0.10)
+  ggplot(data = sampleData, aes(x = PC1, y = PC2)) +
+    geom_point(aes(col=top.10), size=1)+
+    ggtitle("PCA of PUBG Top 10% Placement")
+}
+
+set.seed(314159)
+plotPC(pca.scores)
+
+
+```
+
+
 
 
