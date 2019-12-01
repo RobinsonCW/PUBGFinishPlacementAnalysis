@@ -1,0 +1,120 @@
+---
+title: "PUBG Top 10% Placement Analysis"
+author: "Chance Robinson, Allison Roderick and William Arnost"
+date: |
+  Master of Science in Data Science, Southern Methodist University, USA
+lang: en-US
+class: man
+numbersections: true
+encoding: UTF-8
+bibliography: references.bib
+biblio-style: apalike
+output:
+  bookdown::pdf_document2:
+     citation_package: natbib
+     keep_tex: true
+     toc: false
+header-includes:
+   - \usepackage{amsmath}
+   - \usepackage[utf8]{inputenc}
+   - \usepackage[T1]{fontenc}
+   - \usepackage{setspace}
+   - \usepackage{hyperref}
+   - \onehalfspacing
+   - \setcitestyle{numbers,square,super}
+   - \newcommand\numberthis{\addtocounter{equation}{1}\tag{\theequation}}
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, lib-read, results='hide', message=FALSE, include=FALSE, echo=FALSE}
+setwd('.')
+
+# library imports
+library(tidyverse)
+
+
+```
+
+
+# Introduction
+
+[Intro]
+
+
+# Data Description
+
+[PUBG Data Set]
+
+
+# Objective I Analysis
+
+
+## Question of Interest
+
+
+[Question of Interest]
+
+
+## Model Selection
+
+
+[Logistic Regression, Ridge, Lasso and Elastic Net]
+
+
+\newpage
+
+
+## Model Assumptions Assessment
+
+* One
+* Two
+* Three 
+
+## Comparing Competing Models
+
+[Comparing Competing Models]
+
+\newpage
+
+## Parameters
+
+[Parameters]
+
+## Model Interpretation
+
+[Model Interpretation]
+
+
+## Conclusion
+
+[Conclusion]
+
+\newpage
+
+# Objective II Analysis
+
+
+## Question of Interest
+
+
+## Comparing Competing Models
+
+
+## Conclusion
+
+
+[Conclusion]
+
+
+\newpage
+
+# Appendix
+
+## Explorator Data Analysis
+
+## Code
+
+\newpage
+
+# References
