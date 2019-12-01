@@ -80,8 +80,8 @@ summary(data.mod)
 
 set.seed(1234)
 
-data.mod <- downSample(data.mod, data.mod$top.10, list = FALSE)
-data.mod$Class <- NULL
+# data.mod <- downSample(data.mod, data.mod$top.10, list = FALSE)
+# data.mod$Class <- NULL
 
 
 split.perc = .70
@@ -92,8 +92,8 @@ train = data.mod[train.indices,]
 test = data.mod[-train.indices,]
 
 
-# train <- downSample(train, train$top.10, list = FALSE)
-# train$Class <- NULL
+train <- downSample(train, train$top.10, list = FALSE)
+train$Class <- NULL
 
 
 model.nb.train <- naive_bayes(top.10 ~ ., data = train, laplace = TRUE, usekernel = TRUE)
