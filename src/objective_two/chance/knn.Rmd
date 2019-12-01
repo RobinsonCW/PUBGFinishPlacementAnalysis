@@ -74,16 +74,19 @@ summary(data.mod)
 
 ```{r knn-train-test-split}
 
-sample.data <- sample_frac(data.mod, 1)
-
-sample.data <- downSample(sample.data, sample.data$top.10, list = FALSE)
-sample.data$Class <- NULL
+# sample.data <- sample_frac(data.mod, 1)
+# 
+# sample.data <- downSample(sample.data, sample.data$top.10, list = FALSE)
+# sample.data$Class <- NULL
 
 set.seed(1234)
 
-train.indices <- createDataPartition(y = sample.data$top.10,p = 0.70, list = FALSE)
-train <- sample.data[train.indices,]
-test <- sample.data[-train.indices,]
+train.indices <- createDataPartition(y = data.mod$top.10,p = 0.70, list = FALSE)
+train <- data.mod[train.indices,]
+test <- data.mod[-train.indices,]
+
+train <- downSample(train, train$top.10, list = FALSE)
+train$Class <- NULL
 
 
 set.seed(1234)

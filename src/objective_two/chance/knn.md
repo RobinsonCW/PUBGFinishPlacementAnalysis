@@ -152,16 +152,19 @@ summary(data.mod)
 ## KNN Train / Test Split
 
 ``` r
-sample.data <- sample_frac(data.mod, 1)
-
-sample.data <- downSample(sample.data, sample.data$top.10, list = FALSE)
-sample.data$Class <- NULL
+# sample.data <- sample_frac(data.mod, 1)
+# 
+# sample.data <- downSample(sample.data, sample.data$top.10, list = FALSE)
+# sample.data$Class <- NULL
 
 set.seed(1234)
 
-train.indices <- createDataPartition(y = sample.data$top.10,p = 0.70, list = FALSE)
-train <- sample.data[train.indices,]
-test <- sample.data[-train.indices,]
+train.indices <- createDataPartition(y = data.mod$top.10,p = 0.70, list = FALSE)
+train <- data.mod[train.indices,]
+test <- data.mod[-train.indices,]
+
+train <- downSample(train, train$top.10, list = FALSE)
+train$Class <- NULL
 
 
 set.seed(1234)
@@ -194,16 +197,16 @@ knn.model
     ## Resampling results across tuning parameters:
     ## 
     ##   k   Accuracy   Kappa    
-    ##    5  0.8632670  0.7265344
-    ##    7  0.8683772  0.7367548
-    ##    9  0.8712706  0.7425415
-    ##   11  0.8723226  0.7446453
-    ##   13  0.8727737  0.7455477
-    ##   15  0.8729239  0.7458480
-    ##   17  0.8730742  0.7461485
-    ##   19  0.8735627  0.7471256
-    ##   21  0.8739010  0.7478024
-    ##   23  0.8733374  0.7466750
+    ##    5  0.8610879  0.7221760
+    ##    7  0.8644696  0.7289394
+    ##    9  0.8671373  0.7342750
+    ##   11  0.8686027  0.7372057
+    ##   13  0.8696548  0.7393099
+    ##   15  0.8708944  0.7417893
+    ##   17  0.8702557  0.7405118
+    ##   19  0.8706691  0.7413385
+    ##   21  0.8713454  0.7426910
+    ##   23  0.8709697  0.7419396
     ## 
     ## Accuracy was used to select the optimal model using the largest value.
     ## The final value used for the model was k = 21.
@@ -224,27 +227,27 @@ confusionMatrix(knn.predict, test$top.10, "Yes")
     ## Confusion Matrix and Statistics
     ## 
     ##           Reference
-    ## Prediction   No  Yes
-    ##        No  4672  383
-    ##        Yes 1031 5320
-    ##                                          
-    ##                Accuracy : 0.876          
-    ##                  95% CI : (0.8698, 0.882)
-    ##     No Information Rate : 0.5            
-    ##     P-Value [Acc > NIR] : < 2.2e-16      
-    ##                                          
-    ##                   Kappa : 0.7521         
-    ##                                          
-    ##  Mcnemar's Test P-Value : < 2.2e-16      
-    ##                                          
-    ##             Sensitivity : 0.9328         
-    ##             Specificity : 0.8192         
-    ##          Pos Pred Value : 0.8377         
-    ##          Neg Pred Value : 0.9242         
-    ##              Prevalence : 0.5000         
-    ##          Detection Rate : 0.4664         
-    ##    Detection Prevalence : 0.5568         
-    ##       Balanced Accuracy : 0.8760         
-    ##                                          
-    ##        'Positive' Class : Yes            
+    ## Prediction    No   Yes
+    ##        No  40015   399
+    ##        Yes  8864  5304
+    ##                                           
+    ##                Accuracy : 0.8303          
+    ##                  95% CI : (0.8271, 0.8334)
+    ##     No Information Rate : 0.8955          
+    ##     P-Value [Acc > NIR] : 1               
+    ##                                           
+    ##                   Kappa : 0.4522          
+    ##                                           
+    ##  Mcnemar's Test P-Value : <2e-16          
+    ##                                           
+    ##             Sensitivity : 0.93004         
+    ##             Specificity : 0.81865         
+    ##          Pos Pred Value : 0.37436         
+    ##          Neg Pred Value : 0.99013         
+    ##              Prevalence : 0.10448         
+    ##          Detection Rate : 0.09717         
+    ##    Detection Prevalence : 0.25957         
+    ##       Balanced Accuracy : 0.87435         
+    ##                                           
+    ##        'Positive' Class : Yes             
     ##
