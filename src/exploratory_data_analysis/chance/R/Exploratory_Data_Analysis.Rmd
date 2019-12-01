@@ -37,6 +37,41 @@ test <- read.csv("../../../../data/test_V2.csv", stringsAsFactors=FALSE)
 ```
 
 
+
+```{r train-test-split}
+
+train.mod <- train
+
+train.mod <- train.mod %>%
+  filter(matchType %in% c("solo")) %>%
+  mutate(top.10 = ifelse(winPlacePerc>.9, 1, 0)) %>%
+  mutate(top.10 = as.factor(top.10))
+
+
+set.seed(1234)
+train.indices <- createDataPartition(y = train.mod$top.10,p = 0.7,list = FALSE)
+train.full <- train.mod[train.indices,]
+test.full <- train.mod[-train.indices,]
+
+
+train.downsampled <- downSample(train.full, train.full$top.10)
+train.downsampled$Class <- NULL
+
+head(train.downsampled)
+
+dim(train.mod)
+dim(train.full)
+dim(test.full)
+dim(train.downsampled)
+
+# write.csv(train.mod, "C:\\Users\\Chance\\pubg_solo_game_types.csv", row.names=FALSE)
+# write.csv(train.full, "C:\\Users\\Chance\\pubg_solo_game_types_train_full.csv", row.names=FALSE)
+# write.csv(train.downsampled, "C:\\Users\\Chance\\pubg_solo_game_types_train_downsampled.csv", row.names=FALSE)
+# write.csv(test.full, "C:\\Users\\Chance\\pubg_solo_game_types_test_full.csv", row.names=FALSE)
+
+
+```
+
 ## Default Output
 
 
@@ -232,42 +267,35 @@ data.frame(quantDataModel[order(-quantDataModel$cor),])
 
 ```
 
-```{r train-add-top-10}
-train.mod <- train
-
-train.mod <- train.mod %>%
-  filter(matchType %in% c("solo", "solo-fpp")) %>%
-  mutate(top.10 = ifelse(winPlacePerc>.9, 1, 0))
-
-
-```
-
-
-
-```{r train-downsampled}
-
-train.mod.ds <- downSample(train.mod, as.factor(train.mod$top.10), list = FALSE)
-
-```
-
-
 
 
 ```{r train.mod.ds-logistic.regression-model}
 
-model <- glm(top.10~walkDistance+killPlace+boosts+weaponsAcquired+damageDealt+heals+kills, data = train.mod.ds)
+
+train.downsampled <- train.downsampled %>%
+  mutate(top.10 = factor(top.10, labels = c("No", "Yes")))
+
+head(train.downsampled)
+dim(train.downsampled)
+
+table(train.downsampled$top.10)
+
+summary(train.downsampled)
+
+model <- glm(top.10 ~ walkDistance+killPlace+boosts+weaponsAcquired+damageDealt+heals+kills, data = train.downsampled, family = binomial("logit"))
 summary(model)
-confint(model) 
+# confint(model) 
 ```
 
 
 ```{r train-confusion-matrix}
 
-train.mod.ds$predict <- ifelse(model$fitted.values >0.5, 1, 0)
+train.downsampled$predict <- as.factor(ifelse(model$fitted.values >0.5, "Yes", "No"))
 
-mytable <- table(train.mod.ds$top.10, train.mod.ds$predict)
+
+mytable <- table(train.downsampled$top.10, train.downsampled$predict)
 rownames(mytable) <- c("Obs (Bottom 90)", "Obs (Top 10)")
-colnames(mytable) <- c("Pred (Bottom 90)","Pred (Top 10)")
+colnames(mytable) <- c("Pred (Bottom 90)", "Pred (Top 10)")
 mytable
 
 ```

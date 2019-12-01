@@ -27,14 +27,14 @@ Chance Robinson
 library(tidyverse)
 ```
 
-    ## -- Attaching packages --------------------------------------- tidyverse 1.2.1 --
+    ## -- Attaching packages ------------------------------------------------------------------------------- tidyverse 1.2.1 --
 
     ## v ggplot2 3.2.1     v purrr   0.3.3
     ## v tibble  2.1.3     v dplyr   0.8.3
     ## v tidyr   1.0.0     v stringr 1.4.0
     ## v readr   1.3.1     v forcats 0.4.0
 
-    ## -- Conflicts ------------------------------------------ tidyverse_conflicts() --
+    ## -- Conflicts ---------------------------------------------------------------------------------- tidyverse_conflicts() --
     ## x dplyr::filter() masks stats::filter()
     ## x dplyr::lag()    masks stats::lag()
 
@@ -94,6 +94,94 @@ library(caret)
 ``` r
 train <- read.csv("../../../../data/train_V2.csv", stringsAsFactors=FALSE)
 test <- read.csv("../../../../data/test_V2.csv", stringsAsFactors=FALSE)
+```
+
+``` r
+train.mod <- train
+
+train.mod <- train.mod %>%
+  filter(matchType %in% c("solo")) %>%
+  mutate(top.10 = ifelse(winPlacePerc>.9, 1, 0)) %>%
+  mutate(top.10 = as.factor(top.10))
+
+
+set.seed(1234)
+train.indices <- createDataPartition(y = train.mod$top.10,p = 0.7,list = FALSE)
+train.full <- train.mod[train.indices,]
+test.full <- train.mod[-train.indices,]
+
+
+train.downsampled <- downSample(train.full, train.full$top.10)
+train.downsampled$Class <- NULL
+
+head(train.downsampled)
+```
+
+    ##               Id        groupId        matchId assists boosts damageDealt DBNOs
+    ## 1 db007df1c6bfd9 ae6ca6bbf92290 8dabaf5de9df74       0      1      187.00     0
+    ## 2 c0f3615e6e4e92 cb4921b5fbe9e7 c88eed3eaba0ad       0      0        0.00     0
+    ## 3 023c75b5a33d28 d36487e186fa3e ea32449c1b0148       0      0      100.00     0
+    ## 4 2639baa809a010 dc0c08ecec34ab 3bfd8d66edbeff       0      0       39.97     0
+    ## 5 181789de38c30e 2e0aec37cf64dd a5ded0e832c843       0      2        0.00     0
+    ## 6 955a39464c8201 810bd094a3f820 8618c1a40cb5b2       0      2      100.00     0
+    ##   headshotKills heals killPlace killPoints kills killStreaks longestKill
+    ## 1             0     0        12          0     2           1      31.630
+    ## 2             0     0        91          0     0           0       0.000
+    ## 3             1     0        32       1003     1           1      54.990
+    ## 4             0     0        75          0     0           0       0.000
+    ## 5             0     3        44          0     0           0       0.000
+    ## 6             0     0        35          0     1           1       4.357
+    ##   matchDuration matchType maxPlace numGroups rankPoints revives rideDistance
+    ## 1          1352      solo       96        91       1500       0            0
+    ## 2          1427      solo       94        93       1504       0            0
+    ## 3          1470      solo       97        93         -1       0            0
+    ## 4          1928      solo       99        95       1497       0            0
+    ## 5          1979      solo       96        89       1562       0         1151
+    ## 6          1882      solo       97        93       1521       0            0
+    ##   roadKills swimDistance teamKills vehicleDestroys walkDistance weaponsAcquired
+    ## 1         0         0.00         0               0       2519.0               4
+    ## 2         0         0.00         0               0          0.0               0
+    ## 3         0         0.00         0               0        115.0               2
+    ## 4         0         0.00         0               0        108.1               3
+    ## 5         0        43.94         0               0       2955.0               6
+    ## 6         0         0.00         1               0       1491.0               1
+    ##   winPoints winPlacePerc top.10
+    ## 1         0       0.8737      0
+    ## 2         0       0.0323      0
+    ## 3      1485       0.3958      0
+    ## 4         0       0.2653      0
+    ## 5         0       0.8105      0
+    ## 6         0       0.4271      0
+
+``` r
+dim(train.mod)
+```
+
+    ## [1] 181943     30
+
+``` r
+dim(train.full)
+```
+
+    ## [1] 127361     30
+
+``` r
+dim(test.full)
+```
+
+    ## [1] 54582    30
+
+``` r
+dim(train.downsampled)
+```
+
+    ## [1] 26614    30
+
+``` r
+# write.csv(train.mod, "C:\\Users\\Chance\\pubg_solo_game_types.csv", row.names=FALSE)
+# write.csv(train.full, "C:\\Users\\Chance\\pubg_solo_game_types_train_full.csv", row.names=FALSE)
+# write.csv(train.downsampled, "C:\\Users\\Chance\\pubg_solo_game_types_train_downsampled.csv", row.names=FALSE)
+# write.csv(test.full, "C:\\Users\\Chance\\pubg_solo_game_types_test_full.csv", row.names=FALSE)
 ```
 
 ## Default Output
@@ -495,81 +583,177 @@ data.frame(quantDataModel[order(-quantDataModel$cor),])
     ## 38           boosts     killStreaks 0.4053269 0
 
 ``` r
-train.mod <- train
+train.downsampled <- train.downsampled %>%
+  mutate(top.10 = factor(top.10, labels = c("No", "Yes")))
 
-train.mod <- train.mod %>%
-  filter(matchType %in% c("solo", "solo-fpp")) %>%
-  mutate(top.10 = ifelse(winPlacePerc>.9, 1, 0))
+head(train.downsampled)
 ```
 
-``` r
-train.mod.ds <- downSample(train.mod, as.factor(train.mod$top.10), list = FALSE)
-```
+    ##               Id        groupId        matchId assists boosts damageDealt DBNOs
+    ## 1 db007df1c6bfd9 ae6ca6bbf92290 8dabaf5de9df74       0      1      187.00     0
+    ## 2 c0f3615e6e4e92 cb4921b5fbe9e7 c88eed3eaba0ad       0      0        0.00     0
+    ## 3 023c75b5a33d28 d36487e186fa3e ea32449c1b0148       0      0      100.00     0
+    ## 4 2639baa809a010 dc0c08ecec34ab 3bfd8d66edbeff       0      0       39.97     0
+    ## 5 181789de38c30e 2e0aec37cf64dd a5ded0e832c843       0      2        0.00     0
+    ## 6 955a39464c8201 810bd094a3f820 8618c1a40cb5b2       0      2      100.00     0
+    ##   headshotKills heals killPlace killPoints kills killStreaks longestKill
+    ## 1             0     0        12          0     2           1      31.630
+    ## 2             0     0        91          0     0           0       0.000
+    ## 3             1     0        32       1003     1           1      54.990
+    ## 4             0     0        75          0     0           0       0.000
+    ## 5             0     3        44          0     0           0       0.000
+    ## 6             0     0        35          0     1           1       4.357
+    ##   matchDuration matchType maxPlace numGroups rankPoints revives rideDistance
+    ## 1          1352      solo       96        91       1500       0            0
+    ## 2          1427      solo       94        93       1504       0            0
+    ## 3          1470      solo       97        93         -1       0            0
+    ## 4          1928      solo       99        95       1497       0            0
+    ## 5          1979      solo       96        89       1562       0         1151
+    ## 6          1882      solo       97        93       1521       0            0
+    ##   roadKills swimDistance teamKills vehicleDestroys walkDistance weaponsAcquired
+    ## 1         0         0.00         0               0       2519.0               4
+    ## 2         0         0.00         0               0          0.0               0
+    ## 3         0         0.00         0               0        115.0               2
+    ## 4         0         0.00         0               0        108.1               3
+    ## 5         0        43.94         0               0       2955.0               6
+    ## 6         0         0.00         1               0       1491.0               1
+    ##   winPoints winPlacePerc top.10
+    ## 1         0       0.8737     No
+    ## 2         0       0.0323     No
+    ## 3      1485       0.3958     No
+    ## 4         0       0.2653     No
+    ## 5         0       0.8105     No
+    ## 6         0       0.4271     No
 
 ``` r
-model <- glm(top.10~walkDistance+killPlace+boosts+weaponsAcquired+damageDealt+heals+kills, data = train.mod.ds)
+dim(train.downsampled)
+```
+
+    ## [1] 26614    30
+
+``` r
+table(train.downsampled$top.10)
+```
+
+    ## 
+    ##    No   Yes 
+    ## 13307 13307
+
+``` r
+summary(train.downsampled)
+```
+
+    ##       Id              groupId            matchId             assists      
+    ##  Length:26614       Length:26614       Length:26614       Min.   :0.0000  
+    ##  Class :character   Class :character   Class :character   1st Qu.:0.0000  
+    ##  Mode  :character   Mode  :character   Mode  :character   Median :0.0000  
+    ##                                                           Mean   :0.1107  
+    ##                                                           3rd Qu.:0.0000  
+    ##                                                           Max.   :4.0000  
+    ##      boosts        damageDealt          DBNOs   headshotKills    
+    ##  Min.   : 0.000   Min.   :   0.00   Min.   :0   Min.   : 0.0000  
+    ##  1st Qu.: 0.000   1st Qu.:  19.35   1st Qu.:0   1st Qu.: 0.0000  
+    ##  Median : 1.000   Median : 121.05   Median :0   Median : 0.0000  
+    ##  Mean   : 2.331   Mean   : 204.71   Mean   :0   Mean   : 0.4858  
+    ##  3rd Qu.: 4.000   3rd Qu.: 300.00   3rd Qu.:0   3rd Qu.: 1.0000  
+    ##  Max.   :19.000   Max.   :2490.00   Max.   :0   Max.   :15.0000  
+    ##      heals          killPlace        killPoints         kills       
+    ##  Min.   : 0.000   Min.   :  1.00   Min.   :   0.0   Min.   : 0.000  
+    ##  1st Qu.: 0.000   1st Qu.:  7.00   1st Qu.:   0.0   1st Qu.: 0.000  
+    ##  Median : 1.000   Median : 22.00   Median :   0.0   Median : 1.000  
+    ##  Mean   : 1.786   Mean   : 31.84   Mean   : 415.9   Mean   : 1.754  
+    ##  3rd Qu.: 2.000   3rd Qu.: 51.00   3rd Qu.:1051.8   3rd Qu.: 3.000  
+    ##  Max.   :39.000   Max.   :100.00   Max.   :1913.0   Max.   :21.000  
+    ##   killStreaks       longestKill       matchDuration   matchType        
+    ##  Min.   : 0.0000   Min.   :   0.000   Min.   : 950   Length:26614      
+    ##  1st Qu.: 0.0000   1st Qu.:   0.000   1st Qu.:1433   Class :character  
+    ##  Median : 1.0000   Median :   8.544   Median :1788   Mode  :character  
+    ##  Mean   : 0.6439   Mean   :  42.887   Mean   :1681                     
+    ##  3rd Qu.: 1.0000   3rd Qu.:  59.950   3rd Qu.:1904                     
+    ##  Max.   :16.0000   Max.   :1001.000   Max.   :2237                     
+    ##     maxPlace        numGroups       rankPoints        revives   rideDistance  
+    ##  Min.   : 11.00   Min.   : 1.00   Min.   :  -1.0   Min.   :0   Min.   :    0  
+    ##  1st Qu.: 93.00   1st Qu.:89.00   1st Qu.:  -1.0   1st Qu.:0   1st Qu.:    0  
+    ##  Median : 96.00   Median :92.00   Median :1499.0   Median :0   Median :    0  
+    ##  Mean   : 91.05   Mean   :86.95   Mean   : 993.4   Mean   :0   Mean   : 1091  
+    ##  3rd Qu.: 97.00   3rd Qu.:94.00   3rd Qu.:1520.0   3rd Qu.:0   3rd Qu.: 1364  
+    ##  Max.   :100.00   Max.   :99.00   Max.   :2754.0   Max.   :0   Max.   :26600  
+    ##    roadKills         swimDistance       teamKills        vehicleDestroys  
+    ##  Min.   : 0.00000   Min.   :   0.00   Min.   :0.000000   Min.   :0.00000  
+    ##  1st Qu.: 0.00000   1st Qu.:   0.00   1st Qu.:0.000000   1st Qu.:0.00000  
+    ##  Median : 0.00000   Median :   0.00   Median :0.000000   Median :0.00000  
+    ##  Mean   : 0.01743   Mean   :  10.75   Mean   :0.009957   Mean   :0.01443  
+    ##  3rd Qu.: 0.00000   3rd Qu.:   0.00   3rd Qu.:0.000000   3rd Qu.:0.00000  
+    ##  Max.   :11.00000   Max.   :1321.00   Max.   :1.000000   Max.   :3.00000  
+    ##   walkDistance     weaponsAcquired    winPoints       winPlacePerc   
+    ##  Min.   :    0.0   Min.   : 0.000   Min.   :   0.0   Min.   :0.0000  
+    ##  1st Qu.:  344.9   1st Qu.: 3.000   1st Qu.:   0.0   1st Qu.:0.4062  
+    ##  Median : 1565.0   Median : 4.000   Median :   0.0   Median :0.9005  
+    ##  Mean   : 1587.7   Mean   : 4.614   Mean   : 538.1   Mean   :0.6845  
+    ##  3rd Qu.: 2477.0   3rd Qu.: 6.000   3rd Qu.:1499.0   3rd Qu.:0.9574  
+    ##  Max.   :11830.0   Max.   :52.000   Max.   :1892.0   Max.   :1.0000  
+    ##  top.10     
+    ##  No :13307  
+    ##  Yes:13307  
+    ##             
+    ##             
+    ##             
+    ## 
+
+``` r
+model <- glm(top.10 ~ walkDistance+killPlace+boosts+weaponsAcquired+damageDealt+heals+kills, data = train.downsampled, family = binomial("logit"))
 summary(model)
 ```
 
     ## 
     ## Call:
     ## glm(formula = top.10 ~ walkDistance + killPlace + boosts + weaponsAcquired + 
-    ##     damageDealt + heals + kills, data = train.mod.ds)
+    ##     damageDealt + heals + kills, family = binomial("logit"), 
+    ##     data = train.downsampled)
     ## 
     ## Deviance Residuals: 
-    ##      Min        1Q    Median        3Q       Max  
-    ## -2.59357  -0.19615   0.04123   0.20627   0.93755  
+    ##     Min       1Q   Median       3Q      Max  
+    ## -3.3768  -0.3294  -0.0052   0.5001   2.6778  
     ## 
     ## Coefficients:
-    ##                   Estimate Std. Error t value Pr(>|t|)    
-    ## (Intercept)      3.227e-01  3.895e-03  82.865  < 2e-16 ***
-    ## walkDistance     1.360e-04  9.323e-07 145.896  < 2e-16 ***
-    ## killPlace       -5.123e-03  5.238e-05 -97.805  < 2e-16 ***
-    ## boosts           4.698e-02  4.802e-04  97.834  < 2e-16 ***
-    ## weaponsAcquired  4.122e-03  4.110e-04  10.029  < 2e-16 ***
-    ## damageDealt      1.405e-04  1.248e-05  11.252  < 2e-16 ***
-    ## heals           -1.496e-03  2.989e-04  -5.003 5.65e-07 ***
-    ## kills           -2.093e-02  1.318e-03 -15.881  < 2e-16 ***
+    ##                   Estimate Std. Error z value Pr(>|z|)    
+    ## (Intercept)     -1.084e-01  6.935e-02  -1.563    0.118    
+    ## walkDistance     8.366e-04  2.195e-05  38.111  < 2e-16 ***
+    ## killPlace       -7.685e-02  1.564e-03 -49.142  < 2e-16 ***
+    ## boosts           3.638e-01  1.212e-02  30.021  < 2e-16 ***
+    ## weaponsAcquired  6.601e-02  7.928e-03   8.327  < 2e-16 ***
+    ## damageDealt      1.487e-03  2.591e-04   5.737 9.65e-09 ***
+    ## heals           -2.702e-02  6.519e-03  -4.145 3.40e-05 ***
+    ## kills           -3.697e-01  2.668e-02 -13.856  < 2e-16 ***
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## 
-    ## (Dispersion parameter for gaussian family taken to be 0.1039525)
+    ## (Dispersion parameter for binomial family taken to be 1)
     ## 
-    ##     Null deviance: 37292  on 149167  degrees of freedom
-    ## Residual deviance: 15506  on 149160  degrees of freedom
-    ## AIC: 85641
+    ##     Null deviance: 36895  on 26613  degrees of freedom
+    ## Residual deviance: 17111  on 26606  degrees of freedom
+    ## AIC: 17127
     ## 
-    ## Number of Fisher Scoring iterations: 2
+    ## Number of Fisher Scoring iterations: 6
 
 ``` r
-confint(model) 
+# confint(model) 
 ```
 
-    ## Waiting for profiling to be done...
-
-    ##                         2.5 %        97.5 %
-    ## (Intercept)      0.3151086152  0.3303758476
-    ## walkDistance     0.0001341877  0.0001378422
-    ## killPlace       -0.0052253206 -0.0050200090
-    ## boosts           0.0460346768  0.0479168550
-    ## weaponsAcquired  0.0033165187  0.0049277314
-    ## damageDealt      0.0001159937  0.0001649253
-    ## heals           -0.0020815500 -0.0009097035
-    ## kills           -0.0235081179 -0.0183431268
-
 ``` r
-train.mod.ds$predict <- ifelse(model$fitted.values >0.5, 1, 0)
+train.downsampled$predict <- as.factor(ifelse(model$fitted.values >0.5, "Yes", "No"))
 
-mytable <- table(train.mod.ds$top.10, train.mod.ds$predict)
+
+mytable <- table(train.downsampled$top.10, train.downsampled$predict)
 rownames(mytable) <- c("Obs (Bottom 90)", "Obs (Top 10)")
-colnames(mytable) <- c("Pred (Bottom 90)","Pred (Top 10)")
+colnames(mytable) <- c("Pred (Bottom 90)", "Pred (Top 10)")
 mytable
 ```
 
     ##                  
     ##                   Pred (Bottom 90) Pred (Top 10)
-    ##   Obs (Bottom 90)            62895         11689
-    ##   Obs (Top 10)                7270         67314
+    ##   Obs (Bottom 90)            11070          2237
+    ##   Obs (Top 10)                1480         11827
 
 #### Accuracy
 
@@ -579,7 +763,7 @@ accuracy <- sum(diag(mytable))/sum(mytable)
 accuracy
 ```
 
-    ## [1] 0.8729017
+    ## [1] 0.8603367
 
 ``` r
 tn <- mytable[1,1]
@@ -597,25 +781,25 @@ total <- sum(mytable)
 tn
 ```
 
-    ## [1] 62895
+    ## [1] 11070
 
 ``` r
 fn
 ```
 
-    ## [1] 7270
+    ## [1] 1480
 
 ``` r
 fp
 ```
 
-    ## [1] 11689
+    ## [1] 2237
 
 ``` r
 tp
 ```
 
-    ## [1] 67314
+    ## [1] 11827
 
 #### Sensitivity
 
@@ -629,7 +813,7 @@ sensitivity <- (tp) / (ctotal.1)
 sensitivity
 ```
 
-    ## [1] 0.8520436
+    ## [1] 0.8409414
 
 #### Specificity
 
@@ -643,7 +827,7 @@ specificity <- (tn) / (rtotal.0)
 specificity
 ```
 
-    ## [1] 0.8432774
+    ## [1] 0.831893
 
 #### Precision
 
@@ -657,4 +841,153 @@ precision <- (tp) / (ctotal.1)
 precision
 ```
 
-    ## [1] 0.8520436
+    ## [1] 0.8409414
+
+``` r
+cols.to.remove <- c("DBNOs", "revives")
+
+train.mod.numeric <- train.mod %>%
+  filter(matchType %in% c("solo", "solo-fpp")) %>%
+  select_if(is.numeric) %>%
+  select(-cols.to.remove) %>%
+  mutate(top.10 = ifelse(winPlacePerc>.9, 1, 0)) %>%
+  mutate(matchDurationLength = ifelse(matchDuration >= mean(matchDuration), 1, 0))
+
+
+head(train.mod.numeric)
+```
+
+    ##   assists boosts damageDealt headshotKills heals killPlace killPoints kills
+    ## 1       0      1      100.00             0     0        24          0     1
+    ## 2       0      0       17.81             0     0        79       1274     0
+    ## 3       0      1      100.00             0     0        38       1000     1
+    ## 4       0      0       36.00             0     0        84          0     0
+    ## 5       0      1      236.00             0     7         7       1142     3
+    ## 6       0      0        0.00             0     0        65          0     0
+    ##   killStreaks longestKill matchDuration maxPlace numGroups rankPoints
+    ## 1           1      21.250          1398       92        89       1509
+    ## 2           0       0.000          1945       99        95         -1
+    ## 3           1       7.667          2042       90        86         -1
+    ## 4           0       0.000          1999       94        92       1507
+    ## 5           1      11.720          1423       94        88         -1
+    ## 6           0       0.000          1471       99        94       1500
+    ##   rideDistance roadKills swimDistance teamKills vehicleDestroys walkDistance
+    ## 1          0.0         0           61         0               0       1528.0
+    ## 2        129.3         0            0         0               0        471.9
+    ## 3          0.0         0            0         0               0        231.7
+    ## 4          0.0         0            0         0               0        292.6
+    ## 5          0.0         0            0         0               0       1913.0
+    ## 6          0.0         0            0         0               0        870.9
+    ##   weaponsAcquired winPoints winPlacePerc top.10 matchDurationLength
+    ## 1               3         0       0.8462      0                   0
+    ## 2               3      1536       0.2245      0                   1
+    ## 3               4      1500       0.1573      0                   1
+    ## 4               1         0       0.1075      0                   1
+    ## 5               8      1557       0.9355      1                   0
+    ## 6               3         0       0.3878      0                   0
+
+``` r
+# table(train.mod.numeric$revives)
+
+
+pca.result <- prcomp(train.mod.numeric[1:22], scale.=TRUE)
+# pca.result <- prcomp(train.mod.numeric[1:24])
+pca.scores <- pca.result$x
+
+head(pca.scores)
+```
+
+    ##              PC1        PC2        PC3         PC4        PC5        PC6
+    ## [1,]  0.38682392 -1.0794062 -0.3183832 -0.79985456  1.0474064 -0.2438497
+    ## [2,] -1.73501971  2.5039421 -0.1286761  0.64664334 -0.4011508  0.2995724
+    ## [3,] -0.03427782  1.8833181  0.8439693  0.20848545 -0.5435661  0.5374249
+    ## [4,] -2.13590855 -1.1302511 -0.8545561  0.04497042 -0.5106357  0.3101964
+    ## [5,]  2.52460037  2.2075738  0.7848590  0.39581298  1.2066475 -0.1398577
+    ## [6,] -1.69759482 -0.8998494 -0.9756869 -0.41299844  0.3495923 -0.1170731
+    ##             PC7         PC8        PC9        PC10        PC11       PC12
+    ## [1,] -1.4901892 -0.53935144 -0.1274908  0.04699999  0.51787748 -0.4478379
+    ## [2,]  0.4557082  0.31019431 -0.7962651 -0.04940735 -0.02701182  0.7275551
+    ## [3,]  0.1705238  0.53812278 -0.6985109 -0.18660796  0.42272898  0.9169934
+    ## [4,]  0.5053955  0.02970506 -0.8711114  0.03152857 -0.54318129  0.7621315
+    ## [5,] -0.6071806  0.60303360  1.8527193  0.35016644  0.13445623  0.6587371
+    ## [6,] -0.1432508 -0.01529187  0.3900266  0.17506644  0.25035630 -0.2984875
+    ##             PC13        PC14        PC15       PC16        PC17         PC18
+    ## [1,] -0.65458144  0.67153489  0.22359630  0.4404752  0.15067911 -0.001294542
+    ## [2,]  0.16105165 -0.17760359  0.02514251 -0.2820527 -0.03690238 -0.064449257
+    ## [3,] -1.15367759  0.02456493  0.28860437 -0.5939853  0.61111113  0.002133732
+    ## [4,]  0.05588533  0.08621191  0.24437221 -0.1813078 -0.06904241 -0.169572012
+    ## [5,] -1.05912260 -0.66583938 -0.89168642 -0.0828924 -1.03617181  0.036092274
+    ## [6,]  0.46279577  0.02040302 -0.06811990  0.2786110 -0.19077437  0.077626734
+    ##              PC19         PC20        PC21         PC22
+    ## [1,] -0.021803230  0.008727890 -0.01313175 -0.016292852
+    ## [2,] -0.005276744 -0.185886096  0.04700198 -0.030757921
+    ## [3,] -0.071256372  0.187748652 -0.08756661  0.094023453
+    ## [4,]  0.046711548 -0.041645947 -0.07314810 -0.003567059
+    ## [5,] -0.566206406  0.049823227  0.08785344  0.066060365
+    ## [6,] -0.067947912  0.008887314  0.10045261 -0.016883355
+
+``` r
+# pairs(pca.scores)
+# cor(pca.scores)
+```
+
+A scree plot of the eigenvalues used to determine how many pc’s to keep
+can be plotted in the following way:
+
+``` r
+par(mfrow=c(1,2))
+eigenvals <- (pca.result$sdev)^2
+plot(1:22,eigenvals/sum(eigenvals), type="l", main="Scree Plot", ylab="Prop. Var. Explained")
+cumulative.prop <- cumsum(eigenvals/sum(eigenvals))
+plot(1:22,cumulative.prop, type="l", main="Cumulative proportion", ylim=c(0,1))
+```
+
+![](Exploratory_Data_Analysis_files/figure-gfm/unnamed-chunk-2-1.png)<!-- -->
+
+``` r
+par(mfrow=c(1,1))
+```
+
+``` r
+#Getting a look at the distribution
+table(train.mod.numeric$top.10)
+```
+
+    ## 
+    ##      0      1 
+    ## 162933  19010
+
+``` r
+#Adding the response column to the PC's data frame
+pca.scores <- data.frame(pca.scores)
+pca.scores$top.10 <- as.factor(train.mod.numeric$top.10)
+pca.scores$matchDurationLength <- as.factor(train.mod.numeric$matchDurationLength)
+
+table(train.mod.numeric$matchDurationLength)
+```
+
+    ## 
+    ##     0     1 
+    ## 87962 93981
+
+``` r
+# ggplot(data = pca.scores, aes(x = PC1, y = PC2)) +
+#   geom_point(aes(col=top.10), size=1)+
+#   ggtitle("PCA of PUBG Top 10%")
+```
+
+``` r
+# , shape = matchDurationLength
+
+plotPC <- function(mydata) {
+  sampleData <- sample_frac(mydata, 0.10)
+  ggplot(data = sampleData, aes(x = PC1, y = PC2)) +
+    geom_point(aes(col=top.10), size=1)+
+    ggtitle("PCA of PUBG Top 10% Placement")
+}
+
+set.seed(314159)
+plotPC(pca.scores)
+```
+
+![](Exploratory_Data_Analysis_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
