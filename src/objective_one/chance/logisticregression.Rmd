@@ -86,8 +86,8 @@ set.seed(1234)
 
 # sample.data <- sample_frac(data.mod, 0.10)
 
-data.mod <- downSample(data.mod, data.mod$top.10, list = FALSE)
-data.mod$Class <- NULL
+# data.mod <- downSample(data.mod, data.mod$top.10, list = FALSE)
+# data.mod$Class <- NULL
 
 # head(sample.data)
 
@@ -98,8 +98,8 @@ train.indices = sample(1:dim(data.mod)[1],round(split.perc * dim(data.mod)[1]))
 train = data.mod[train.indices,]
 test = data.mod[-train.indices,]
 
-# train <- downSample(train, train$top.10, list = FALSE)
-# train$Class <- NULL
+train <- downSample(train, train$top.10, list = FALSE)
+train$Class <- NULL
 
 
 model <- glm(top.10 ~ ., data = train,  family = binomial("logit"))
