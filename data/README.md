@@ -7,17 +7,15 @@ The source data is available on Kaggle.com under the competition [PUBG Finish Pl
 
 ## Additional Files
 
-### pubg_solo_game_types.csv
-- Filtered for solo only game types
+`pubg_solo_game_types.csv`  Filtered for solo only game types
 
-### pubg_solo_game_types_train_full.csv
-- Pre-split for train data without downsampling for the unbalanced response variable
+`pubg_solo_game_types_test_full.csv`  Pre-split for test data
 
-### pubg_solo_game_types_train_downsampled.csv
-- Pre-split for train data with downsampling for the unbalanced response variable
+`pubg_solo_game_types_train_full.csv`  Pre-split for train data without downsampling for the unbalanced response variable
 
-### pubg_solo_game_types_test_full.csv
-- Pre-split for test data
+`pubg_solo_game_types_train_downsampled.csv`  Pre-split for train data with downsampling for the unbalanced response variable
+
+
 
 
 ## Data Dictionary
@@ -52,5 +50,5 @@ winPoints        |               |Win-based external ranking of player. (Think o
 groupId          |               |ID to identify a group within a match. If the same group of players plays in different matches, they will have a different groupId each time.
 numGroups        |               |Number of groups we have data for in the match.
 maxPlace         |               |Worst placement we have data for in the match. This may not match with numGroups, as sometimes the data skips over placements.
-winPlacePerc     |               |This is a percentile winning placement, where 1 corresponds to 1st place, and 0 corresponds to last place in the match. (to be removed from our binomial classfier)
-top.10           |               |The target of prediction. This is a percentile winning placement, where as Yes corresponds to a top 10% placement and below that in the lower 90%.
+winPlacePerc     |               |This is a percentile winning placement, where 1 corresponds to 1st place, and 0 corresponds to last place in the match. (to be removed from our binomial classfier so as not to influence our predictive results)
+top.10           |               |The target of prediction. This is a percentile winning placement, where 1 corresponds to a top 10% placement a 0 in the lower 90%.
