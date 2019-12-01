@@ -1,6 +1,26 @@
 # Dataset Readme
 
-## Beers
+## Data Reference
+
+The source data is available on Kaggle.com under the competition [PUBG Finish Placement Prediction](https://www.kaggle.com/c/pubg-finish-placement-prediction/overview). The files listed here were derived from the source data and are not licensed by this github repository.
+
+
+## Additional Files
+
+### pubg_solo_game_types.csv
+- Filtered for solo only game types
+
+### pubg_solo_game_types_train_full.csv
+- Pre-split for train data without downsampling for the unbalanced response variable
+
+### pubg_solo_game_types_train_downsampled.csv
+- Pre-split for train data with downsampling for the unbalanced response variable
+
+### pubg_solo_game_types_train_full.csv
+- Pre-split for test data
+
+
+## Data Dictionary
 
 Column Name      |Type           |Description
 -----------------|---------------|-------------------------------------------------
@@ -12,7 +32,7 @@ headshotKills    |               |Number of enemy players killed with headshots.
 heals            |               |Number of healing items used.
 Id               |               |Player’s Id
 killPlace        |               |Ranking in match of number of enemy players killed.
-killPoints       |               |Kills-based external ranking of player.
+killPoints       |               |Kills-based external ranking of player. (Think of this as an Elo ranking where only kills matter.) If there is a value other than -1 in rankPoints, then any 0 in killPoints should be treated as a “None”.
 killStreaks      |               |Max number of enemy players killed in a short amount of time.
 kills            |               |Number of enemy players killed.
 longestKill      |               |Longest distance between player and player killed at time of death. 
@@ -28,7 +48,7 @@ teamKills        |               |Number of times this player killed a teammate.
 vehicleDestroys  |               |Number of vehicles destroyed.
 walkDistance     |               |Total distance traveled on foot measured in meters.
 weaponsAcquired  |               |Number of weapons picked up.
-winPoints        |               |Win-based external ranking of player. 
+winPoints        |               |Win-based external ranking of player. (Think of this as an Elo ranking where only winning matters.) If there is a value other than -1 in rankPoints, then any 0 in winPoints should be treated as a “None”.
 groupId          |               |ID to identify a group within a match. If the same group of players plays in different matches, they will have a different groupId each time.
 numGroups        |               |Number of groups we have data for in the match.
 maxPlace         |               |Worst placement we have data for in the match. This may not match with numGroups, as sometimes the data skips over placements.
