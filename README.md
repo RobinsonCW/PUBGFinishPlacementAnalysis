@@ -1,6 +1,6 @@
 # PUBGFinishPlacementAnalysis
 
-Created by [Chance Robinson](https://github.com/RobinsonCW)  
+Created by [Chance Robinson](https://github.com/RobinsonCW), [Allison Roderick](https://github.com/allroderick) and [William Arnost](https://github.com/warnost)
 
 ## Purpose
 Prediction of finish placement of PUBG players
