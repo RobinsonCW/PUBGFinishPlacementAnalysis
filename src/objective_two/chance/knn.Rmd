@@ -74,7 +74,7 @@ summary(data.mod)
 
 ```{r knn-train-test-split}
 
-sample.data <- sample_frac(data.mod, 0.10)
+sample.data <- sample_frac(data.mod, 1)
 
 sample.data <- downSample(sample.data, sample.data$top.10, list = FALSE)
 sample.data$Class <- NULL
