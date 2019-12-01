@@ -84,10 +84,10 @@ summary(data.mod)
 
 set.seed(1234)
 
-sample.data <- sample_frac(data.mod, 0.10)
+sample.data <- sample_frac(data.mod, 1)
 
-sample.data <- downSample(sample.data, sample.data$top.10, list = FALSE)
-sample.data$Class <- NULL
+# sample.data <- downSample(sample.data, sample.data$top.10, list = FALSE)
+# sample.data$Class <- NULL
 
 # head(sample.data)
 
@@ -98,8 +98,8 @@ train.indices = sample(1:dim(sample.data)[1],round(split.perc * dim(sample.data)
 train = sample.data[train.indices,]
 test = sample.data[-train.indices,]
 
-# train <- downSample(train, train$top.10, list = FALSE)
-# train$Class <- NULL
+train <- downSample(train, train$top.10, list = FALSE)
+train$Class <- NULL
 
 
 model.rf.train <- randomForest(top.10 ~ ., data = train, ntree = 300, mtry = 5)
@@ -141,4 +141,43 @@ confusionMatrix(data=p2,
 
 
 
+```{r pre-train-test-split}
+
+# train <- read.csv("../../../data/pubg_solo_game_types_train_downsampled.csv", stringsAsFactors=FALSE)
+# 
+# test <- read.csv("../../../data/pubg_solo_game_types_test_full.csv", stringsAsFactors=FALSE)
+# 
+# 
+# train <- train %>%
+#   select(-cols_to_remove) %>%
+#   mutate(top.10 = factor(top.10, labels = c("No", "Yes"))) 
+# 
+# 
+# test <- test %>%
+#   select(-cols_to_remove) %>%
+#   mutate(top.10 = factor(top.10, labels = c("No", "Yes"))) 
+# 
+# 
+# model.rf.train <- randomForest(as.factor(top.10) ~ ., data = train, ntree = 300, mtry = 5)
+# 
+# print(model.rf.train)
+# 
+# 
+# p1 <- predict(model.rf.train, train)
+# p2 <- predict(model.rf.train, test)
+# 
+# 
+# print(model.rf.train)
+# plot(model.rf.train) 
+# varImp(model.rf.train)
+# 
+# 
+# confusionMatrix(data=p1,  
+#                 reference=train$top.10, "Yes")
+# 
+# 
+# confusionMatrix(data=p2,  
+#                 reference=test$top.10, "Yes")
+
+```
 

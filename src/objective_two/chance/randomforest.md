@@ -24,14 +24,14 @@ Chance Robinson
 library(tidyverse)
 ```
 
-    ## -- Attaching packages ------------------------------------------------------------------------------------ tidyverse 1.2.1 --
+    ## -- Attaching packages ------------------------------------------------------------------------------------------------------------- tidyverse 1.2.1 --
 
     ## v ggplot2 3.2.1     v purrr   0.3.3
     ## v tibble  2.1.3     v dplyr   0.8.3
     ## v tidyr   1.0.0     v stringr 1.4.0
     ## v readr   1.3.1     v forcats 0.4.0
 
-    ## -- Conflicts --------------------------------------------------------------------------------------- tidyverse_conflicts() --
+    ## -- Conflicts ---------------------------------------------------------------------------------------------------------------- tidyverse_conflicts() --
     ## x dplyr::filter() masks stats::filter()
     ## x dplyr::lag()    masks stats::lag()
 
@@ -81,40 +81,40 @@ head(data)
 ```
 
     ##               Id        groupId        matchId assists boosts damageDealt DBNOs
-    ## 1 315c96c26c9aac de04010b3458dd 6dc8ff871e21e6       0      0     100.000     0
-    ## 2 311b84c6ff4390 eaba5fcb7fc1ae 292611730ca862       0      0       8.538     0
-    ## 3 b7807186e3f679 3c08e461874749 2c30ddf481c52d       0      1     324.200     0
-    ## 4 92022479b92ce7 2f2c33f548c4b9 07948d723b9c0f       0      3     254.300     0
-    ## 5 47143f942503e0 e17a8867a393ec bc2faecb77e5ec       0      0     136.900     0
-    ## 6 269c3fc4a26935 3c07be51998e6f ce9bc89b3ca08c       0      1     100.000     0
+    ## 1 269c3fc4a26935 3c07be51998e6f ce9bc89b3ca08c       0      1      100.00     0
+    ## 2 73348483a5974b 1c8e486a643207 85601fe44d519b       0      0       17.81     0
+    ## 3 caa1a36afeb7b2 c653cfca3b8b06 e5e181d2da0334       0      1      100.00     0
+    ## 4 5fd62798396ca8 bb19a05801d30d 9e3c46f8acde82       0      0       36.00     0
+    ## 5 18d002b46b1abc 00a3f236559532 eccc44618c0442       0      1      236.00     0
+    ## 6 d08ce24e7a7973 d57ed9de010a4e 1eda9747e31f1f       0      0        0.00     0
     ##   headshotKills heals killPlace killPoints kills killStreaks longestKill
-    ## 1             0     0        45          0     1           1       58.53
-    ## 2             0     0        48       1000     0           0        0.00
-    ## 3             1     5         5        986     4           1       49.83
-    ## 4             0    12        13          0     2           1       36.00
-    ## 5             0     0        37          0     1           1       22.83
-    ## 6             0     0        24          0     1           1       21.25
+    ## 1             0     0        24          0     1           1      21.250
+    ## 2             0     0        79       1274     0           0       0.000
+    ## 3             0     0        38       1000     1           1       7.667
+    ## 4             0     0        84          0     0           0       0.000
+    ## 5             0     7         7       1142     3           1      11.720
+    ## 6             0     0        65          0     0           0       0.000
     ##   matchDuration matchType maxPlace numGroups rankPoints revives rideDistance
-    ## 1          1424  solo-fpp       97        95       1560       0            0
-    ## 2          1967  solo-fpp       96        92         -1       0         2004
-    ## 3          1886  solo-fpp       97        94         -1       0         1228
-    ## 4          1371  solo-fpp       96        95       1536       0         2367
-    ## 5          1425  solo-fpp       96        94       1500       0            0
-    ## 6          1398      solo       92        89       1509       0            0
+    ## 1          1398      solo       92        89       1509       0          0.0
+    ## 2          1945      solo       99        95         -1       0        129.3
+    ## 3          2042      solo       90        86         -1       0          0.0
+    ## 4          1999      solo       94        92       1507       0          0.0
+    ## 5          1423      solo       94        88         -1       0          0.0
+    ## 6          1471      solo       99        94       1500       0          0.0
     ##   roadKills swimDistance teamKills vehicleDestroys walkDistance weaponsAcquired
-    ## 1         0         0.00         0               0        49.75               2
-    ## 2         0         0.00         0               0      1089.00               6
-    ## 3         0        76.84         0               0      2050.00               6
-    ## 4         0        15.29         0               0      1787.00               3
-    ## 5         0         0.00         0               0       270.70               1
-    ## 6         0        61.00         0               0      1528.00               3
+    ## 1         0           61         0               0       1528.0               3
+    ## 2         0            0         0               0        471.9               3
+    ## 3         0            0         0               0        231.7               4
+    ## 4         0            0         0               0        292.6               1
+    ## 5         0            0         0               0       1913.0               8
+    ## 6         0            0         0               0        870.9               3
     ##   winPoints winPlacePerc top.10
-    ## 1         0       0.1875      0
-    ## 2      1500       0.7368      0
-    ## 3      1462       0.8750      0
-    ## 4         0       0.8211      0
-    ## 5         0       0.3474      0
-    ## 6         0       0.8462      0
+    ## 1         0       0.8462      0
+    ## 2      1536       0.2245      0
+    ## 3      1500       0.1573      0
+    ## 4         0       0.1075      0
+    ## 5      1557       0.9355      1
+    ## 6         0       0.3878      0
 
 ## Remove Missing Values
 
@@ -134,12 +134,12 @@ head(data[cols_to_keep])
 ```
 
     ##   walkDistance killPlace boosts weaponsAcquired damageDealt heals kills top.10
-    ## 1        49.75        45      0               2     100.000     0     1      0
-    ## 2      1089.00        48      0               6       8.538     0     0      0
-    ## 3      2050.00         5      1               6     324.200     5     4      0
-    ## 4      1787.00        13      3               3     254.300    12     2      0
-    ## 5       270.70        37      0               1     136.900     0     1      0
-    ## 6      1528.00        24      1               3     100.000     0     1      0
+    ## 1       1528.0        24      1               3      100.00     0     1      0
+    ## 2        471.9        79      0               3       17.81     0     0      0
+    ## 3        231.7        38      1               4      100.00     0     1      0
+    ## 4        292.6        84      0               1       36.00     0     0      0
+    ## 5       1913.0         7      1               8      236.00     7     3      1
+    ## 6        870.9        65      0               3        0.00     0     0      0
 
 ## Prepare Dataframe
 
@@ -154,45 +154,45 @@ summary(data.mod)
     ##     assists            boosts        damageDealt      headshotKills    
     ##  Min.   :0.00000   Min.   : 0.000   Min.   :   0.00   Min.   : 0.0000  
     ##  1st Qu.:0.00000   1st Qu.: 0.000   1st Qu.:   0.00   1st Qu.: 0.0000  
-    ##  Median :0.00000   Median : 0.000   Median :  73.96   Median : 0.0000  
-    ##  Mean   :0.05713   Mean   : 1.061   Mean   : 117.32   Mean   : 0.2445  
-    ##  3rd Qu.:0.00000   3rd Qu.: 2.000   3rd Qu.: 168.60   3rd Qu.: 0.0000  
-    ##  Max.   :5.00000   Max.   :28.000   Max.   :2490.00   Max.   :19.0000  
-    ##      heals         killPlace        killPoints         kills        
-    ##  Min.   : 0.00   Min.   :  1.00   Min.   :   0.0   Min.   : 0.0000  
-    ##  1st Qu.: 0.00   1st Qu.: 23.00   1st Qu.:   0.0   1st Qu.: 0.0000  
-    ##  Median : 0.00   Median : 47.00   Median :   0.0   Median : 0.0000  
-    ##  Mean   : 1.01   Mean   : 47.56   Mean   : 447.3   Mean   : 0.9186  
-    ##  3rd Qu.: 1.00   3rd Qu.: 71.00   3rd Qu.:1091.0   3rd Qu.: 1.0000  
-    ##  Max.   :63.00   Max.   :100.00   Max.   :1970.0   Max.   :23.0000  
+    ##  Median :0.00000   Median : 0.000   Median :  65.73   Median : 0.0000  
+    ##  Mean   :0.05562   Mean   : 1.066   Mean   : 112.62   Mean   : 0.2238  
+    ##  3rd Qu.:0.00000   3rd Qu.: 2.000   3rd Qu.: 159.60   3rd Qu.: 0.0000  
+    ##  Max.   :4.00000   Max.   :24.000   Max.   :2490.00   Max.   :19.0000  
+    ##      heals          killPlace        killPoints         kills        
+    ##  Min.   : 0.000   Min.   :  1.00   Min.   :   0.0   Min.   : 0.0000  
+    ##  1st Qu.: 0.000   1st Qu.: 21.00   1st Qu.:   0.0   1st Qu.: 0.0000  
+    ##  Median : 0.000   Median : 46.00   Median :   0.0   Median : 0.0000  
+    ##  Mean   : 1.012   Mean   : 46.17   Mean   : 407.8   Mean   : 0.8709  
+    ##  3rd Qu.: 1.000   3rd Qu.: 70.00   3rd Qu.:1032.0   3rd Qu.: 1.0000  
+    ##  Max.   :49.000   Max.   :100.00   Max.   :1962.0   Max.   :21.0000  
     ##   killStreaks       longestKill      matchDuration     maxPlace     
-    ##  Min.   : 0.0000   Min.   :   0.00   Min.   : 950   Min.   :  8.00  
-    ##  1st Qu.: 0.0000   1st Qu.:   0.00   1st Qu.:1384   1st Qu.: 94.00  
-    ##  Median : 0.0000   Median :   0.00   Median :1456   Median : 96.00  
-    ##  Mean   : 0.4724   Mean   :  21.45   Mean   :1602   Mean   : 94.11  
-    ##  3rd Qu.: 1.0000   3rd Qu.:  20.69   3rd Qu.:1875   3rd Qu.: 97.00  
+    ##  Min.   : 0.0000   Min.   :   0.00   Min.   : 950   Min.   : 11.00  
+    ##  1st Qu.: 0.0000   1st Qu.:   0.00   1st Qu.:1431   1st Qu.: 93.00  
+    ##  Median : 0.0000   Median :   0.00   Median :1771   Median : 96.00  
+    ##  Mean   : 0.4429   Mean   :  20.70   Mean   :1676   Mean   : 91.34  
+    ##  3rd Qu.: 1.0000   3rd Qu.:  15.91   3rd Qu.:1903   3rd Qu.: 97.00  
     ##  Max.   :18.0000   Max.   :1001.00   Max.   :2237   Max.   :100.00  
-    ##    numGroups        rankPoints        revives   rideDistance    
-    ##  Min.   :  1.00   Min.   :  -1.0   Min.   :0   Min.   :    0.0  
-    ##  1st Qu.: 91.00   1st Qu.:  -1.0   1st Qu.:0   1st Qu.:    0.0  
-    ##  Median : 93.00   Median :1496.0   Median :0   Median :    0.0  
-    ##  Mean   : 91.33   Mean   : 967.2   Mean   :0   Mean   :  463.4  
-    ##  3rd Qu.: 95.00   3rd Qu.:1517.0   3rd Qu.:0   3rd Qu.:    0.0  
-    ##  Max.   :100.00   Max.   :2857.0   Max.   :0   Max.   :40710.0  
-    ##    roadKills          swimDistance        teamKills      vehicleDestroys   
-    ##  Min.   : 0.000000   Min.   :   0.000   Min.   :0.0000   Min.   :0.000000  
-    ##  1st Qu.: 0.000000   1st Qu.:   0.000   1st Qu.:0.0000   1st Qu.:0.000000  
-    ##  Median : 0.000000   Median :   0.000   Median :0.0000   Median :0.000000  
-    ##  Mean   : 0.005123   Mean   :   5.091   Mean   :0.0114   Mean   :0.004519  
-    ##  3rd Qu.: 0.000000   3rd Qu.:   0.000   3rd Qu.:0.0000   3rd Qu.:0.000000  
-    ##  Max.   :18.000000   Max.   :1974.000   Max.   :1.0000   Max.   :5.000000  
-    ##   walkDistance     weaponsAcquired     winPoints      top.10      
-    ##  Min.   :    0.0   Min.   :  0.000   Min.   :   0.0   No :644120  
-    ##  1st Qu.:  100.5   1st Qu.:  2.000   1st Qu.:   0.0   Yes: 74584  
-    ##  Median :  502.7   Median :  3.000   Median :   0.0               
-    ##  Mean   :  955.7   Mean   :  3.555   Mean   : 556.9               
-    ##  3rd Qu.: 1588.0   3rd Qu.:  5.000   3rd Qu.:1492.0               
-    ##  Max.   :25780.0   Max.   :153.000   Max.   :1922.0
+    ##    numGroups       rankPoints        revives   rideDistance     
+    ##  Min.   : 1.00   Min.   :  -1.0   Min.   :0   Min.   :    0.00  
+    ##  1st Qu.:89.00   1st Qu.:  -1.0   1st Qu.:0   1st Qu.:    0.00  
+    ##  Median :92.00   Median :1494.0   Median :0   Median :    0.00  
+    ##  Mean   :87.29   Mean   : 978.5   Mean   :0   Mean   :  640.98  
+    ##  3rd Qu.:94.00   3rd Qu.:1510.0   3rd Qu.:0   3rd Qu.:    1.16  
+    ##  Max.   :99.00   Max.   :2857.0   Max.   :0   Max.   :33970.00  
+    ##    roadKills          swimDistance        teamKills       vehicleDestroys  
+    ##  Min.   : 0.000000   Min.   :   0.000   Min.   :0.00000   Min.   :0.00000  
+    ##  1st Qu.: 0.000000   1st Qu.:   0.000   1st Qu.:0.00000   1st Qu.:0.00000  
+    ##  Median : 0.000000   Median :   0.000   Median :0.00000   Median :0.00000  
+    ##  Mean   : 0.009948   Mean   :   5.878   Mean   :0.01499   Mean   :0.00753  
+    ##  3rd Qu.: 0.000000   3rd Qu.:   0.000   3rd Qu.:0.00000   3rd Qu.:0.00000  
+    ##  Max.   :18.000000   Max.   :1606.000   Max.   :1.00000   Max.   :3.00000  
+    ##   walkDistance     weaponsAcquired    winPoints      top.10      
+    ##  Min.   :    0.0   Min.   : 0.000   Min.   :   0.0   No :162933  
+    ##  1st Qu.:  114.0   1st Qu.: 2.000   1st Qu.:   0.0   Yes: 19010  
+    ##  Median :  607.7   Median : 3.000   Median :   0.0               
+    ##  Mean   :  986.2   Mean   : 3.757   Mean   : 536.9               
+    ##  3rd Qu.: 1616.0   3rd Qu.: 5.000   3rd Qu.:1492.0               
+    ##  Max.   :15370.0   Max.   :52.000   Max.   :1892.0
 
 ``` r
 # str(data.mod)
@@ -205,10 +205,10 @@ summary(data.mod)
 ``` r
 set.seed(1234)
 
-sample.data <- sample_frac(data.mod, 0.10)
+sample.data <- sample_frac(data.mod, 1)
 
-sample.data <- downSample(sample.data, sample.data$top.10, list = FALSE)
-sample.data$Class <- NULL
+# sample.data <- downSample(sample.data, sample.data$top.10, list = FALSE)
+# sample.data$Class <- NULL
 
 # head(sample.data)
 
@@ -219,8 +219,8 @@ train.indices = sample(1:dim(sample.data)[1],round(split.perc * dim(sample.data)
 train = sample.data[train.indices,]
 test = sample.data[-train.indices,]
 
-# train <- downSample(train, train$top.10, list = FALSE)
-# train$Class <- NULL
+train <- downSample(train, train$top.10, list = FALSE)
+train$Class <- NULL
 
 
 model.rf.train <- randomForest(top.10 ~ ., data = train, ntree = 300, mtry = 5)
@@ -235,11 +235,11 @@ print(model.rf.train)
     ##                      Number of trees: 300
     ## No. of variables tried at each split: 5
     ## 
-    ##         OOB estimate of  error rate: 9.15%
+    ##         OOB estimate of  error rate: 9.09%
     ## Confusion matrix:
-    ##       No  Yes class.error
-    ## No  4579  735   0.1383139
-    ## Yes  238 5078   0.0447705
+    ##        No   Yes class.error
+    ## No  11495  1838   0.1378534
+    ## Yes   586 12747   0.0439511
 
 ``` r
 p1 <- predict(model.rf.train, train)
@@ -255,30 +255,30 @@ plot(model.rf.train)
 varImp(model.rf.train)
 ```
 
-    ##                     Overall
-    ## assists           20.120845
-    ## boosts           681.837075
-    ## damageDealt      320.903834
-    ## headshotKills     41.279226
-    ## heals            207.261989
-    ## killPlace       1047.080032
-    ## killPoints        79.210746
-    ## kills            259.696263
-    ## killStreaks       78.631173
-    ## longestKill      311.250824
-    ## matchDuration    176.311817
-    ## maxPlace         112.879513
-    ## numGroups        121.447438
-    ## rankPoints       114.497284
-    ## revives            0.000000
-    ## rideDistance     110.734111
-    ## roadKills          2.608494
-    ## swimDistance      55.834645
-    ## teamKills          3.866909
-    ## vehicleDestroys    2.953464
-    ## walkDistance    1293.524624
-    ## weaponsAcquired  174.505103
-    ## winPoints         77.586838
+    ##                    Overall
+    ## assists           54.98648
+    ## boosts          1433.03401
+    ## damageDealt      790.20076
+    ## headshotKills     89.61210
+    ## heals            365.18617
+    ## killPlace       3516.79612
+    ## killPoints       174.39569
+    ## kills            793.33847
+    ## killStreaks      203.14219
+    ## longestKill      677.48680
+    ## matchDuration    466.23367
+    ## maxPlace         356.99437
+    ## numGroups        400.53964
+    ## rankPoints       286.70778
+    ## revives            0.00000
+    ## rideDistance     340.32863
+    ## roadKills          9.51922
+    ## swimDistance     123.88599
+    ## teamKills         19.00543
+    ## vehicleDestroys   15.15263
+    ## walkDistance    2502.83685
+    ## weaponsAcquired  389.62024
+    ## winPoints        183.17058
 
 ## Random Forest Performance
 
@@ -292,29 +292,29 @@ confusionMatrix(data=p1,
     ## Confusion Matrix and Statistics
     ## 
     ##           Reference
-    ## Prediction   No  Yes
-    ##        No  5312    0
-    ##        Yes    2 5316
-    ##                                      
-    ##                Accuracy : 0.9998     
-    ##                  95% CI : (0.9993, 1)
-    ##     No Information Rate : 0.5001     
-    ##     P-Value [Acc > NIR] : <2e-16     
-    ##                                      
-    ##                   Kappa : 0.9996     
-    ##                                      
-    ##  Mcnemar's Test P-Value : 0.4795     
-    ##                                      
-    ##             Sensitivity : 1.0000     
-    ##             Specificity : 0.9996     
-    ##          Pos Pred Value : 0.9996     
-    ##          Neg Pred Value : 1.0000     
-    ##              Prevalence : 0.5001     
-    ##          Detection Rate : 0.5001     
-    ##    Detection Prevalence : 0.5003     
-    ##       Balanced Accuracy : 0.9998     
-    ##                                      
-    ##        'Positive' Class : Yes        
+    ## Prediction    No   Yes
+    ##        No  13297     7
+    ##        Yes    36 13326
+    ##                                           
+    ##                Accuracy : 0.9984          
+    ##                  95% CI : (0.9978, 0.9988)
+    ##     No Information Rate : 0.5             
+    ##     P-Value [Acc > NIR] : < 2.2e-16       
+    ##                                           
+    ##                   Kappa : 0.9968          
+    ##                                           
+    ##  Mcnemar's Test P-Value : 1.955e-05       
+    ##                                           
+    ##             Sensitivity : 0.9995          
+    ##             Specificity : 0.9973          
+    ##          Pos Pred Value : 0.9973          
+    ##          Neg Pred Value : 0.9995          
+    ##              Prevalence : 0.5000          
+    ##          Detection Rate : 0.4997          
+    ##    Detection Prevalence : 0.5011          
+    ##       Balanced Accuracy : 0.9984          
+    ##                                           
+    ##        'Positive' Class : Yes             
     ## 
 
 ### Test
@@ -327,27 +327,65 @@ confusionMatrix(data=p2,
     ## Confusion Matrix and Statistics
     ## 
     ##           Reference
-    ## Prediction   No  Yes
-    ##        No  1932   97
-    ##        Yes  347 2180
+    ## Prediction    No   Yes
+    ##        No  42191   262
+    ##        Yes  6715  5415
     ##                                          
-    ##                Accuracy : 0.9025         
-    ##                  95% CI : (0.8936, 0.911)
-    ##     No Information Rate : 0.5002         
-    ##     P-Value [Acc > NIR] : < 2.2e-16      
+    ##                Accuracy : 0.8722         
+    ##                  95% CI : (0.8693, 0.875)
+    ##     No Information Rate : 0.896          
+    ##     P-Value [Acc > NIR] : 1              
     ##                                          
-    ##                   Kappa : 0.8051         
+    ##                   Kappa : 0.5435         
     ##                                          
-    ##  Mcnemar's Test P-Value : < 2.2e-16      
+    ##  Mcnemar's Test P-Value : <2e-16         
     ##                                          
-    ##             Sensitivity : 0.9574         
-    ##             Specificity : 0.8477         
-    ##          Pos Pred Value : 0.8627         
-    ##          Neg Pred Value : 0.9522         
-    ##              Prevalence : 0.4998         
-    ##          Detection Rate : 0.4785         
-    ##    Detection Prevalence : 0.5547         
-    ##       Balanced Accuracy : 0.9026         
+    ##             Sensitivity : 0.95385        
+    ##             Specificity : 0.86270        
+    ##          Pos Pred Value : 0.44641        
+    ##          Neg Pred Value : 0.99383        
+    ##              Prevalence : 0.10401        
+    ##          Detection Rate : 0.09921        
+    ##    Detection Prevalence : 0.22223        
+    ##       Balanced Accuracy : 0.90827        
     ##                                          
     ##        'Positive' Class : Yes            
-    ##
+    ## 
+
+``` r
+# train <- read.csv("../../../data/pubg_solo_game_types_train_downsampled.csv", stringsAsFactors=FALSE)
+# 
+# test <- read.csv("../../../data/pubg_solo_game_types_test_full.csv", stringsAsFactors=FALSE)
+# 
+# 
+# train <- train %>%
+#   select(-cols_to_remove) %>%
+#   mutate(top.10 = factor(top.10, labels = c("No", "Yes"))) 
+# 
+# 
+# test <- test %>%
+#   select(-cols_to_remove) %>%
+#   mutate(top.10 = factor(top.10, labels = c("No", "Yes"))) 
+# 
+# 
+# model.rf.train <- randomForest(as.factor(top.10) ~ ., data = train, ntree = 300, mtry = 5)
+# 
+# print(model.rf.train)
+# 
+# 
+# p1 <- predict(model.rf.train, train)
+# p2 <- predict(model.rf.train, test)
+# 
+# 
+# print(model.rf.train)
+# plot(model.rf.train) 
+# varImp(model.rf.train)
+# 
+# 
+# confusionMatrix(data=p1,  
+#                 reference=train$top.10, "Yes")
+# 
+# 
+# confusionMatrix(data=p2,  
+#                 reference=test$top.10, "Yes")
+```
