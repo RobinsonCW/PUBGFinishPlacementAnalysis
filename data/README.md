@@ -16,7 +16,7 @@ The source data is available on Kaggle.com under the competition [PUBG Finish Pl
 ### pubg_solo_game_types_train_downsampled.csv
 - Pre-split for train data with downsampling for the unbalanced response variable
 
-### pubg_solo_game_types_train_full.csv
+### pubg_solo_game_types_test_full.csv
 - Pre-split for test data
 
 
