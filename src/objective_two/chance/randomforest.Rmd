@@ -102,7 +102,9 @@ train <- downSample(train, train$top.10, list = FALSE)
 train$Class <- NULL
 
 
-model.rf.train <- randomForest(top.10 ~ ., data = train, ntree = 300, mtry = 5)
+model.rf.train <- randomForest(top.10 ~ ., data = train, ntree = 300, mtry = 5, cutoff = c(0.36,1-0.36))
+
+?randomForest
 
 print(model.rf.train)
 

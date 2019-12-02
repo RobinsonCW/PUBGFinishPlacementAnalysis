@@ -24,14 +24,14 @@ Chance Robinson
 library(tidyverse)
 ```
 
-    ## -- Attaching packages ------------------------------------------------------------------------------------------------------------- tidyverse 1.2.1 --
+    ## -- Attaching packages --------------------------------------------------------------------------------------------------------------- tidyverse 1.2.1 --
 
     ## v ggplot2 3.2.1     v purrr   0.3.3
     ## v tibble  2.1.3     v dplyr   0.8.3
     ## v tidyr   1.0.0     v stringr 1.4.0
     ## v readr   1.3.1     v forcats 0.4.0
 
-    ## -- Conflicts ---------------------------------------------------------------------------------------------------------------- tidyverse_conflicts() --
+    ## -- Conflicts ------------------------------------------------------------------------------------------------------------------ tidyverse_conflicts() --
     ## x dplyr::filter() masks stats::filter()
     ## x dplyr::lag()    masks stats::lag()
 
@@ -223,23 +223,29 @@ train <- downSample(train, train$top.10, list = FALSE)
 train$Class <- NULL
 
 
-model.rf.train <- randomForest(top.10 ~ ., data = train, ntree = 300, mtry = 5)
+model.rf.train <- randomForest(top.10 ~ ., data = train, ntree = 300, mtry = 5, cutoff = c(0.36,1-0.36))
 
+?randomForest
+```
+
+    ## starting httpd help server ... done
+
+``` r
 print(model.rf.train)
 ```
 
     ## 
     ## Call:
-    ##  randomForest(formula = top.10 ~ ., data = train, ntree = 300,      mtry = 5) 
+    ##  randomForest(formula = top.10 ~ ., data = train, ntree = 300,      mtry = 5, cutoff = c(0.36, 1 - 0.36)) 
     ##                Type of random forest: classification
     ##                      Number of trees: 300
     ## No. of variables tried at each split: 5
     ## 
-    ##         OOB estimate of  error rate: 9.09%
+    ##         OOB estimate of  error rate: 10.14%
     ## Confusion matrix:
     ##        No   Yes class.error
-    ## No  11495  1838   0.1378534
-    ## Yes   586 12747   0.0439511
+    ## No  11996  1337   0.1002775
+    ## Yes  1368 11965   0.1026026
 
 ``` r
 p1 <- predict(model.rf.train, train)
@@ -255,30 +261,30 @@ plot(model.rf.train)
 varImp(model.rf.train)
 ```
 
-    ##                    Overall
-    ## assists           54.98648
-    ## boosts          1433.03401
-    ## damageDealt      790.20076
-    ## headshotKills     89.61210
-    ## heals            365.18617
-    ## killPlace       3516.79612
-    ## killPoints       174.39569
-    ## kills            793.33847
-    ## killStreaks      203.14219
-    ## longestKill      677.48680
-    ## matchDuration    466.23367
-    ## maxPlace         356.99437
-    ## numGroups        400.53964
-    ## rankPoints       286.70778
-    ## revives            0.00000
-    ## rideDistance     340.32863
-    ## roadKills          9.51922
-    ## swimDistance     123.88599
-    ## teamKills         19.00543
-    ## vehicleDestroys   15.15263
-    ## walkDistance    2502.83685
-    ## weaponsAcquired  389.62024
-    ## winPoints        183.17058
+    ##                     Overall
+    ## assists           54.338518
+    ## boosts          1518.743367
+    ## damageDealt      819.544579
+    ## headshotKills     75.054951
+    ## heals            399.647631
+    ## killPlace       3461.024217
+    ## killPoints       171.735511
+    ## kills            691.138188
+    ## killStreaks      279.859420
+    ## longestKill      605.845546
+    ## matchDuration    462.440131
+    ## maxPlace         366.007736
+    ## numGroups        425.580752
+    ## rankPoints       289.506244
+    ## revives            0.000000
+    ## rideDistance     353.727482
+    ## roadKills          9.217478
+    ## swimDistance     132.533992
+    ## teamKills         18.047137
+    ## vehicleDestroys   15.835489
+    ## walkDistance    2447.567213
+    ## weaponsAcquired  411.035865
+    ## winPoints        182.302958
 
 ## Random Forest Performance
 
@@ -293,26 +299,26 @@ confusionMatrix(data=p1,
     ## 
     ##           Reference
     ## Prediction    No   Yes
-    ##        No  13297     7
-    ##        Yes    36 13326
+    ##        No  13307    30
+    ##        Yes    26 13303
     ##                                           
-    ##                Accuracy : 0.9984          
-    ##                  95% CI : (0.9978, 0.9988)
+    ##                Accuracy : 0.9979          
+    ##                  95% CI : (0.9973, 0.9984)
     ##     No Information Rate : 0.5             
-    ##     P-Value [Acc > NIR] : < 2.2e-16       
+    ##     P-Value [Acc > NIR] : <2e-16          
     ##                                           
-    ##                   Kappa : 0.9968          
+    ##                   Kappa : 0.9958          
     ##                                           
-    ##  Mcnemar's Test P-Value : 1.955e-05       
+    ##  Mcnemar's Test P-Value : 0.6885          
     ##                                           
-    ##             Sensitivity : 0.9995          
-    ##             Specificity : 0.9973          
-    ##          Pos Pred Value : 0.9973          
-    ##          Neg Pred Value : 0.9995          
+    ##             Sensitivity : 0.9977          
+    ##             Specificity : 0.9980          
+    ##          Pos Pred Value : 0.9980          
+    ##          Neg Pred Value : 0.9978          
     ##              Prevalence : 0.5000          
-    ##          Detection Rate : 0.4997          
-    ##    Detection Prevalence : 0.5011          
-    ##       Balanced Accuracy : 0.9984          
+    ##          Detection Rate : 0.4989          
+    ##    Detection Prevalence : 0.4998          
+    ##       Balanced Accuracy : 0.9979          
     ##                                           
     ##        'Positive' Class : Yes             
     ## 
@@ -328,28 +334,28 @@ confusionMatrix(data=p2,
     ## 
     ##           Reference
     ## Prediction    No   Yes
-    ##        No  42191   262
-    ##        Yes  6715  5415
-    ##                                          
-    ##                Accuracy : 0.8722         
-    ##                  95% CI : (0.8693, 0.875)
-    ##     No Information Rate : 0.896          
-    ##     P-Value [Acc > NIR] : 1              
-    ##                                          
-    ##                   Kappa : 0.5435         
-    ##                                          
-    ##  Mcnemar's Test P-Value : <2e-16         
-    ##                                          
-    ##             Sensitivity : 0.95385        
-    ##             Specificity : 0.86270        
-    ##          Pos Pred Value : 0.44641        
-    ##          Neg Pred Value : 0.99383        
-    ##              Prevalence : 0.10401        
-    ##          Detection Rate : 0.09921        
-    ##    Detection Prevalence : 0.22223        
-    ##       Balanced Accuracy : 0.90827        
-    ##                                          
-    ##        'Positive' Class : Yes            
+    ##        No  44116   578
+    ##        Yes  4790  5099
+    ##                                           
+    ##                Accuracy : 0.9017          
+    ##                  95% CI : (0.8991, 0.9041)
+    ##     No Information Rate : 0.896           
+    ##     P-Value [Acc > NIR] : 6.528e-06       
+    ##                                           
+    ##                   Kappa : 0.6026          
+    ##                                           
+    ##  Mcnemar's Test P-Value : < 2.2e-16       
+    ##                                           
+    ##             Sensitivity : 0.89819         
+    ##             Specificity : 0.90206         
+    ##          Pos Pred Value : 0.51562         
+    ##          Neg Pred Value : 0.98707         
+    ##              Prevalence : 0.10401         
+    ##          Detection Rate : 0.09342         
+    ##    Detection Prevalence : 0.18117         
+    ##       Balanced Accuracy : 0.90012         
+    ##                                           
+    ##        'Positive' Class : Yes             
     ## 
 
 ``` r
