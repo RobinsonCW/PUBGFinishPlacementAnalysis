@@ -108,7 +108,7 @@ model <- glm(top.10 ~ ., data = train,  family = binomial("logit"))
 # print(model.rf.train)
 # 
 # 
-train$predict <- as.factor(ifelse(model$fitted.values >0.5, "Yes", "No"))
+train$predict <- as.factor(ifelse(model$fitted.values >0.55, "Yes", "No"))
 
 #test$predict <- as.factor(ifelse(model$fitted.values >0.5, "Yes", "No"))
 
@@ -145,7 +145,7 @@ confusionMatrix(data=train$predict,
 # test$predict <- as.factor(ifelse(model$fitted.values >0.5, "Yes", "No"))
 
 test$predict <- predict(model, test, type="response")
-test$predict <- as.factor(ifelse(test$predict >0.5, "Yes", "No"))
+test$predict <- as.factor(ifelse(test$predict >0.55, "Yes", "No"))
 
 
 confusionMatrix(data=test$predict,  

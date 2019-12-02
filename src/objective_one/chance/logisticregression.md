@@ -25,14 +25,14 @@ Chance Robinson
 library(tidyverse)
 ```
 
-    ## -- Attaching packages -------------------------------------------------------------------------------- tidyverse 1.2.1 --
+    ## -- Attaching packages ---------------------------------------------------------------------------------- tidyverse 1.2.1 --
 
     ## v ggplot2 3.2.1     v purrr   0.3.3
     ## v tibble  2.1.3     v dplyr   0.8.3
     ## v tidyr   1.0.0     v stringr 1.4.0
     ## v readr   1.3.1     v forcats 0.4.0
 
-    ## -- Conflicts ----------------------------------------------------------------------------------- tidyverse_conflicts() --
+    ## -- Conflicts ------------------------------------------------------------------------------------- tidyverse_conflicts() --
     ## x dplyr::filter() masks stats::filter()
     ## x dplyr::lag()    masks stats::lag()
 
@@ -184,7 +184,7 @@ model <- glm(top.10 ~ ., data = train,  family = binomial("logit"))
 # print(model.rf.train)
 # 
 # 
-train$predict <- as.factor(ifelse(model$fitted.values >0.5, "Yes", "No"))
+train$predict <- as.factor(ifelse(model$fitted.values >0.55, "Yes", "No"))
 
 #test$predict <- as.factor(ifelse(model$fitted.values >0.5, "Yes", "No"))
 
@@ -268,28 +268,28 @@ confusionMatrix(data=train$predict,
     ## 
     ##           Reference
     ## Prediction    No   Yes
-    ##        No  11151  1489
-    ##        Yes  2185 11847
-    ##                                           
-    ##                Accuracy : 0.8623          
-    ##                  95% CI : (0.8581, 0.8664)
-    ##     No Information Rate : 0.5             
-    ##     P-Value [Acc > NIR] : < 2.2e-16       
-    ##                                           
-    ##                   Kappa : 0.7245          
-    ##                                           
-    ##  Mcnemar's Test P-Value : < 2.2e-16       
-    ##                                           
-    ##             Sensitivity : 0.8883          
-    ##             Specificity : 0.8362          
-    ##          Pos Pred Value : 0.8443          
-    ##          Neg Pred Value : 0.8822          
-    ##              Prevalence : 0.5000          
-    ##          Detection Rate : 0.4442          
-    ##    Detection Prevalence : 0.5261          
-    ##       Balanced Accuracy : 0.8623          
-    ##                                           
-    ##        'Positive' Class : Yes             
+    ##        No  11406  1851
+    ##        Yes  1930 11485
+    ##                                          
+    ##                Accuracy : 0.8582         
+    ##                  95% CI : (0.854, 0.8624)
+    ##     No Information Rate : 0.5            
+    ##     P-Value [Acc > NIR] : <2e-16         
+    ##                                          
+    ##                   Kappa : 0.7165         
+    ##                                          
+    ##  Mcnemar's Test P-Value : 0.2046         
+    ##                                          
+    ##             Sensitivity : 0.8612         
+    ##             Specificity : 0.8553         
+    ##          Pos Pred Value : 0.8561         
+    ##          Neg Pred Value : 0.8604         
+    ##              Prevalence : 0.5000         
+    ##          Detection Rate : 0.4306         
+    ##    Detection Prevalence : 0.5030         
+    ##       Balanced Accuracy : 0.8582         
+    ##                                          
+    ##        'Positive' Class : Yes            
     ## 
 
 ### Test
@@ -298,7 +298,7 @@ confusionMatrix(data=train$predict,
 # test$predict <- as.factor(ifelse(model$fitted.values >0.5, "Yes", "No"))
 
 test$predict <- predict(model, test, type="response")
-test$predict <- as.factor(ifelse(test$predict >0.5, "Yes", "No"))
+test$predict <- as.factor(ifelse(test$predict >0.55, "Yes", "No"))
 
 
 confusionMatrix(data=test$predict,  
@@ -309,26 +309,26 @@ confusionMatrix(data=test$predict,
     ## 
     ##           Reference
     ## Prediction    No   Yes
-    ##        No  40928   680
-    ##        Yes  7981  4994
+    ##        No  41861   829
+    ##        Yes  7048  4845
     ##                                           
-    ##                Accuracy : 0.8413          
-    ##                  95% CI : (0.8382, 0.8444)
+    ##                Accuracy : 0.8557          
+    ##                  95% CI : (0.8527, 0.8586)
     ##     No Information Rate : 0.896           
     ##     P-Value [Acc > NIR] : 1               
     ##                                           
-    ##                   Kappa : 0.457           
+    ##                   Kappa : 0.4782          
     ##                                           
     ##  Mcnemar's Test P-Value : <2e-16          
     ##                                           
-    ##             Sensitivity : 0.88016         
-    ##             Specificity : 0.83682         
-    ##          Pos Pred Value : 0.38489         
-    ##          Neg Pred Value : 0.98366         
+    ##             Sensitivity : 0.85389         
+    ##             Specificity : 0.85590         
+    ##          Pos Pred Value : 0.40738         
+    ##          Neg Pred Value : 0.98058         
     ##              Prevalence : 0.10395         
-    ##          Detection Rate : 0.09149         
-    ##    Detection Prevalence : 0.23771         
-    ##       Balanced Accuracy : 0.85849         
+    ##          Detection Rate : 0.08876         
+    ##    Detection Prevalence : 0.21789         
+    ##       Balanced Accuracy : 0.85490         
     ##                                           
     ##        'Positive' Class : Yes             
     ##
