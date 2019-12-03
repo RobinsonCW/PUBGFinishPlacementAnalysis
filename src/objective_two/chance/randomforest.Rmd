@@ -23,6 +23,9 @@ library(randomForest)
 library(e1071)  
 # downSample
 library(caret)
+# ROC Curves
+library(ROCR)
+library(pROC)
 ```
 
 
@@ -44,6 +47,36 @@ head(data)
 ```{r data-missing}
 # remove the row with no winPlacePerc   
 data <- data[!data$Id == 'f70c74418bb064',]
+
+
+# summary(data$rankPoints)
+# 
+# data$rankPoints <- cut(data$rankPoints, breaks=5)
+# 
+# str(data$rankPoints)
+# (data[data$winPoints == 0,])
+# 
+# (data[data$killPoints == 0,])
+# 
+# (data[data$rankPoints != -1,])
+
+
+# data <- data %>%
+#   filter(rankPoints != -1 & winPoints == 0) %>%
+#   mutate(winPoints = 0)
+# 
+# data <- data %>%
+#   filter(rankPoints != -1 & killPoints == 0) %>%
+#   mutate(killPoints = 0)
+# 
+# 
+# outliers <- data[   data$walkDistance > mean(data$walkDistance) + (sd(data$walkDistance) * 3), ]
+# 
+# outliers
+# 
+# outliers
+# dim(data)
+
 ```
 
 
@@ -53,7 +86,7 @@ data <- data[!data$Id == 'f70c74418bb064',]
 ```{r data-significant-columns}
 cols_to_keep = c("walkDistance", "killPlace", "boosts", "weaponsAcquired", "damageDealt", "heals", "kills", "top.10")
 
-cols_to_remove = c("Id", "groupId", "matchId", "matchType", "DBNOs", "winPlacePerc")
+cols_to_remove = c("Id", "groupId", "matchId", "matchType", "DBNOs", "revives", "winPlacePerc")
 
 head(data[cols_to_keep])
 
@@ -102,7 +135,7 @@ train <- downSample(train, train$top.10, list = FALSE)
 train$Class <- NULL
 
 
-model.rf.train <- randomForest(top.10 ~ ., data = train, ntree = 300, mtry = 5, cutoff = c(0.36,1-0.36))
+model.rf.train <- randomForest(top.10 ~ ., data = train, ntree = 275, mtry = 8, cutoff = c(0.36,1-0.36))
 
 ?randomForest
 
@@ -112,7 +145,7 @@ print(model.rf.train)
 p1 <- predict(model.rf.train, train)
 p2 <- predict(model.rf.train, test)
 
-
+head(p1)
 plot(model.rf.train) 
 varImp(model.rf.train)
 
@@ -140,8 +173,44 @@ confusionMatrix(data=p2,
 
 ```
 
+```{r rf-tune}
+
+# head(test)
+tuneRF(test[,-23], test[,23],
+       stepFactor = 0.5,
+       ntreeTry = 275,
+       trace = TRUE,
+       improve = 0.5
+)
+
+```
 
 
+
+### Area Under the Curve
+
+```{r rf-auc-plot-test}
+
+# ?pROC
+
+auc <- roc(as.integer(test$top.10), as.integer(p2))
+# print(auc)
+
+# plot(auc, ylim=c(0,1), print.thres=TRUE, main=paste('AUC of Test Set:', round(auc$auc[[1]],2)))
+# abline(h=1,col='green',lwd=2)
+# abline(h=0,col='red',lwd=2)
+
+g <- ggroc(auc, alpha = 0.5, colour = "red", linetype = 2, size = 2) +
+  theme_minimal() + 
+  ggtitle(paste('AUC of Test Set:', round(auc$auc[[1]],2))) + 
+  geom_segment(aes(x = 0, xend = 1, y = 0, yend = 1), color="darkgrey", linetype="dashed")
+  
+
+plot(g)
+
+
+
+```
 
 ```{r pre-train-test-split}
 
@@ -152,15 +221,15 @@ confusionMatrix(data=p2,
 # 
 # train <- train %>%
 #   select(-cols_to_remove) %>%
-#   mutate(top.10 = factor(top.10, labels = c("No", "Yes"))) 
+#   mutate(top.10 = factor(top.10, labels = c("No", "Yes")))
 # 
 # 
 # test <- test %>%
 #   select(-cols_to_remove) %>%
-#   mutate(top.10 = factor(top.10, labels = c("No", "Yes"))) 
+#   mutate(top.10 = factor(top.10, labels = c("No", "Yes")))
 # 
 # 
-# model.rf.train <- randomForest(as.factor(top.10) ~ ., data = train, ntree = 300, mtry = 5)
+# model.rf.train <- randomForest(as.factor(top.10) ~ ., data = train, ntree = 275, mtry = 8, cutoff = c(0.36,1-0.36))
 # 
 # print(model.rf.train)
 # 
@@ -170,15 +239,15 @@ confusionMatrix(data=p2,
 # 
 # 
 # print(model.rf.train)
-# plot(model.rf.train) 
+# plot(model.rf.train)
 # varImp(model.rf.train)
 # 
 # 
-# confusionMatrix(data=p1,  
+# confusionMatrix(data=p1,
 #                 reference=train$top.10, "Yes")
 # 
 # 
-# confusionMatrix(data=p2,  
+# confusionMatrix(data=p2,
 #                 reference=test$top.10, "Yes")
 
 ```
