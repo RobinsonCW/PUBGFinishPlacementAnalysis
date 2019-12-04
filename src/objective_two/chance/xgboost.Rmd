@@ -1,0 +1,315 @@
+---
+title: "Extreme Gradient Boosting"
+author: "Chance Robinson"
+date: "12/03/2019"
+output: 
+  github_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Exploratory Data Analysis
+
+## Library Imports
+
+
+```{r library-imports, quietely=TRUE, warn.conflicts=FALSE}
+library(tidyverse)
+# Gradient Boosing
+library(xgboost)  
+library(magrittr)
+library(Matrix)
+# downSample
+library(caret)
+# ROC Curves
+library(ROCR)
+library(pROC)
+```
+
+
+
+## Load the CSV Data
+
+```{r load-data}
+data <- read.csv("../../../data/pubg_solo_game_types.csv", stringsAsFactors=FALSE)
+
+```
+
+
+```{r head-data}
+head(data)
+```
+
+## Remove Missing Values
+
+```{r data-missing}
+# remove the row with no winPlacePerc   
+data <- data[!data$Id == 'f70c74418bb064',]
+
+
+head(data)
+
+
+data <- data %>%
+  mutate(winPoints = ifelse(rankPoints != -1 & winPoints == 0, mean(winPoints), winPoints )) %>%
+  mutate(winPoints = ifelse(rankPoints != -1 & killPoints == 0, mean(killPoints), killPoints ))
+
+# outliers <- data[   data$walkDistance > mean(data$walkDistance) + (sd(data$walkDistance) * 3), ]
+
+
+```
+
+
+
+## Specify Model Columns of Interest
+
+```{r data-significant-columns}
+cols_to_keep = c("walkDistance", "killPlace", "boosts", "weaponsAcquired", "damageDealt", "heals", "kills", "top.10")
+
+cols_to_remove = c("Id", "groupId", "matchId", "matchType", "DBNOs", "revives", "winPlacePerc")
+
+head(data[cols_to_keep])
+
+
+```
+
+
+## Prepare Dataframe
+
+```{r data-preparation}
+data.mod <- data %>%
+  select(-cols_to_remove)
+  # mutate(top.10 = factor(top.10, labels = c("No", "Yes"))) 
+
+summary(data.mod)
+
+table(data.mod$top.10)
+
+```
+
+
+## XG Boost
+
+
+## Train / Test Split
+
+```{r xg-boost-train-test-split}
+
+set.seed(1234)
+
+split.perc = .70
+
+train.indices = sample(1:dim(data.mod)[1],round(split.perc * dim(data.mod)[1]))
+
+train = data.mod[train.indices,]
+test = data.mod[-train.indices,]
+
+train <- downSample(train, as.factor(train$top.10), list = FALSE)
+train$Class <- NULL
+
+
+```
+
+
+```{r xb-boost-create-matrix}
+
+
+trainm <- sparse.model.matrix(top.10 ~ ., data = train)
+
+# trainm
+train_label <- train[, "top.10"]
+train_matrix <- xgb.DMatrix(data = as.matrix(trainm), label = train_label)
+
+?xgb.DMatrix
+
+
+testm <- sparse.model.matrix(top.10 ~ ., data = test)
+# trainm
+test_label <- test[, "top.10"]
+
+# train_label
+test_matrix <- xgb.DMatrix(data = as.matrix(testm), label = test_label)
+
+```
+
+
+
+```{r xb-boost-create-matrix-2}
+
+nc <- length(unique(train_label))
+
+
+xgb_params <- list("objective" = "binary:logistic",
+                  "eval_metric" = "auc")
+
+watchlist <- list(train = train_matrix, test = test_matrix)
+
+```
+
+
+
+```{r xb-boost-create-matrix-3}
+
+# bst_model <- xgb.train(params = xgb_params,
+#                        data = train_matrix,
+#                        nrounds = 100,
+#                        watchlist = watchlist,
+#                        eta = 0.02,
+#                        max.depth = 15,
+#                        gamma = 0,
+#                        subsample = 0.7,
+#                        missing = NA,
+#                        seed = 1234
+#                        )
+
+# 
+# scale_pos_weight <- 48909 / 5674
+# scale_pos_weight
+
+
+bst_model <- xgb.train(params = xgb_params,
+                       data = train_matrix,
+                       nrounds = 200,
+                       watchlist = watchlist,
+                       scale_pos_weight = 0.7,
+                       eta = 0.075,
+                       max.depth = 10,
+                       gamma = 7,
+                       colsample_bytree = .9,
+                       subsample = 0.7,
+                       missing = NA,
+                       seed = 1234
+                       )
+
+
+
+
+# bst_model <- xgboost(data = train_matrix, label = train_label, nround = 50, objective = "binary:logistic", eval_metric = "auc")
+
+# print(bst_model)
+
+
+prd <- predict(bst_model, test_matrix)
+
+head(prd)
+
+e <- data.frame(bst_model$evaluation_log)
+
+head(e)
+
+plot(e$iter, e$train_auc, col = "blue")
+lines(e$iter, e$test_auc, col = "red")
+
+max(e$test_auc)
+
+e[e$test_auc ==  0.966903, ]
+
+# # Feature importance
+imp <- xgb.importance(colnames(train_matrix), model = bst_model)
+
+# print(imp)
+
+xgb.plot.importance(imp)
+```
+
+
+```{r}
+
+
+
+p <- predict(bst_model, newdata = test_matrix)
+# head(p)
+pred <- matrix(p, nrow = 1, ncol = length(p) ) %>%
+  t() %>%
+  data.frame() %>%
+  mutate(label = test_label, max_prob = max.col(., "last")-1)
+
+
+
+```
+
+
+### Test
+```{r rf-performance-test}
+
+p <- as.factor(ifelse(p > 0.5, "1", "0"))
+
+head(p)
+
+
+confusionMatrix(data=as.factor(p),  
+                reference=as.factor(test_label), "1")
+
+
+
+```
+
+
+### Area Under the Curve
+
+```{r rf-auc-plot-test}
+
+# ?pROC
+
+auc <- roc(as.integer(test_label), as.integer(p))
+# print(auc)
+
+# plot(auc, ylim=c(0,1), print.thres=TRUE, main=paste('AUC of Test Set:', round(auc$auc[[1]],2)))
+# abline(h=1,col='green',lwd=2)
+# abline(h=0,col='red',lwd=2)
+
+g <- ggroc(auc, alpha = 0.5, colour = "red", linetype = 2, size = 2) +
+  theme_minimal() + 
+  ggtitle(paste('AUC of Test Set:', round(auc$auc[[1]],4))) + 
+  geom_segment(aes(x = 0, xend = 1, y = 0, yend = 1), color="darkgrey", linetype="dashed")
+  
+
+plot(g)
+
+
+
+```
+
+```{r pre-train-test-split}
+
+# train <- read.csv("../../../data/pubg_solo_game_types_train_downsampled.csv", stringsAsFactors=FALSE)
+# 
+# test <- read.csv("../../../data/pubg_solo_game_types_test_full.csv", stringsAsFactors=FALSE)
+# 
+# 
+# train <- train %>%
+#   select(-cols_to_remove) %>%
+#   mutate(top.10 = factor(top.10, labels = c("No", "Yes")))
+# 
+# 
+# test <- test %>%
+#   select(-cols_to_remove) %>%
+#   mutate(top.10 = factor(top.10, labels = c("No", "Yes")))
+# 
+# 
+# model.rf.train <- randomForest(as.factor(top.10) ~ ., data = train, ntree = 275, mtry = 8, cutoff = c(0.36,1-0.36))
+# 
+# print(model.rf.train)
+# 
+# 
+# p1 <- predict(model.rf.train, train)
+# p2 <- predict(model.rf.train, test)
+# 
+# 
+# print(model.rf.train)
+# plot(model.rf.train)
+# varImp(model.rf.train)
+# 
+# 
+# confusionMatrix(data=p1,
+#                 reference=train$top.10, "Yes")
+# 
+# 
+# confusionMatrix(data=p2,
+#                 reference=test$top.10, "Yes")
+
+```
+
