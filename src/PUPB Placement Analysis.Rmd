@@ -23,10 +23,12 @@ header-includes:
    - \onehalfspacing
    - \setcitestyle{numbers,square,super}
    - \newcommand\numberthis{\addtocounter{equation}{1}\tag{\theequation}}
-editor_options: 
+editor_options:
   chunk_output_type: console
----
 
+
+
+---
 ```{r, lib-read, results='hide', message=FALSE, include=FALSE, echo=FALSE}
 
 setwd('.')
@@ -44,15 +46,25 @@ library(ROCR)
 library(pROC)
 # outlier and leverage plots
 library(olsrr)
+# LDA
+library(dplyr)
+library(car)
+library(RColorBrewer)
+library(psych)
+library(glmnet)
+library(reshape2)
+library(MASS)
+library(e1071)
 
 ```
 
 
 ```{r, load-data, results='hide', message=FALSE, include=FALSE, echo=FALSE}
 
-train <- read.csv("./data/pubg_solo_game_types_train_downsampled.csv", stringsAsFactors=FALSE)
-test <- read.csv("./data/pubg_solo_game_types_test_full.csv", stringsAsFactors=FALSE)
-
+# train <- read.csv("./data/pubg_solo_game_types_train_downsampled.csv", stringsAsFactors=FALSE)
+# test <- read.csv("./data/pubg_solo_game_types_test_full.csv", stringsAsFactors=FALSE)
+train <- read.csv("C:/Git/PUBGFinishPlacementAnalysis/data/pubg_solo_game_types_train_downsampled.csv", stringsAsFactors=FALSE)
+test <- read.csv("C:/Git/PUBGFinishPlacementAnalysis/data/pubg_solo_game_types_test_full.csv", stringsAsFactors=FALSE)
 
 train <- train %>%
   mutate(top.10 = factor(top.10, labels = c("0", "1")))
@@ -104,9 +116,9 @@ boosts           |               |Number of boost items used.
 damageDealt      |               |Total damage dealt. Note: Self inflicted damage is subtracted.
 headshotKills    |               |Number of enemy players killed with headshots.
 heals            |               |Number of healing items used.
-Id               |               |Player’s Id
+Id               |               |Players Id
 killPlace        |               |Ranking in match of number of enemy players killed.
-killPoints       |               |Kills-based external ranking of player. (Think of this as an Elo ranking where only kills matter.) If there is a value other than -1 in rankPoints, then any 0 in killPoints should be treated as a “None”.
+killPoints       |               |Kills-based external ranking of player. (Think of this as an Elo ranking where only kills matter.) If there is a value other than -1 in rankPoints, then any 0 in killPoints should be treated as a None.
 killStreaks      |               |Max number of enemy players killed in a short amount of time.
 kills            |               |Number of enemy players killed.
 longestKill      |               |Longest distance between player and player killed at time of death. 
@@ -122,7 +134,7 @@ teamKills        |               |Number of times this player killed a teammate.
 vehicleDestroys  |               |Number of vehicles destroyed.
 walkDistance     |               |Total distance traveled on foot measured in meters.
 weaponsAcquired  |               |Number of weapons picked up.
-winPoints        |               |Win-based external ranking of player. (Think of this as an Elo ranking where only winning matters.) If there is a value other than -1 in rankPoints, then any 0 in winPoints should be treated as a “None”.
+winPoints        |               |Win-based external ranking of player. (Think of this as an Elo ranking where only winning matters.) If there is a value other than -1 in rankPoints, then any 0 in winPoints should be treated as a None.
 groupId          |               |ID to identify a group within a match. If the same group of players plays in different matches, they will have a different groupId each time.
 numGroups        |               |Number of groups we have data for in the match.
 maxPlace         |               |Worst placement we have data for in the match. This may not match with numGroups, as sometimes the data skips over placements.
@@ -176,6 +188,217 @@ top.10           |               |The target of prediction. This is a percentile
 
 [Logistic Regression with interactions, LDA and Random Forest]
 
+### Linear Discriminant Analysis
+Our next prediction tool is Linear Discriminant Analysis (LDA) for classifying the player as Top 10 or not. We have taken a subset of the continuous variables from our EDA to build the LDA off of. Before running the LDA, we will cover two things: a LASSO call to eliminate less important variables and assumption checking.
+
+#### LASSO
+
+The LASSO call plus manual variable selection reduced the predictors considered for the LDA model to: boosts, heals, killPlace, killStreaks, longestKill, matchDuration, rideDistance, swimDistance, teamKills, walkDistance, weaponsAcquired.
+
+```{r lda.datapull, results='hide', message=FALSE, include=FALSE, echo=FALSE}
+# Reduce variables to relevant continuous variables
+train1<-train[,c(5:6,8:10,12:15,19,21:27,29:30)]
+test1<-test[,c(5:6,8:10,12:15,19,21:27,29:30)]
+# train2 <- train1[,c(1,4:19)]
+# test2 <- test1[,c(1,4:19)]
+train2_alt <- train1[,c(1,4:17,19)]
+test2_alt <- test1[,c(1,4:17,19)]
+```
+
+```{r lda.lasso, results='hide', message=FALSE, include=FALSE, echo=FALSE}
+
+# Get data in format for LASSO
+x=model.matrix(top.10~.,train2_alt)[,-1]
+y=as.numeric(train2_alt$top.10)
+
+xtest<-model.matrix(top.10~.,test2_alt)[,-1]
+ytest<-as.numeric(test2_alt$top.10)
+
+grid=10^seq(10,-2, length =100)
+lasso.mod=glmnet(x,y,alpha=1, lambda =grid)
+
+set.seed(23) #removes kills roadKills vehicleDestroys
+cv.out=cv.glmnet(x,y,alpha=1,family="binomial") #alpha=1 performs LASSO
+lda.lasso<-plot(cv.out)
+
+# simplest model
+lda.lasso.model.coef<-coef(cv.out, cv.out$lambda.1se)
+lda.lasso.model.coef
+```
+
+```{r lda.train_final, results='hide', message=FALSE, include=FALSE, echo=FALSE}
+
+# Removing the kills, roadKills, and vehicleDestroys as shown above
+# Also removing rankPoints because 
+# (a) the majority of the players in these data aren't ranked and 
+# (b) the Kaggle descrption says "This ranking is inconsistent and is being deprecated in the API's next version"
+train_final <- train2_alt[,c(-4,-8,-10,-13)]
+
+```
+#### Assumption Checking
+
+LDA performs optimally when the assumptions of MANOVA are met. That is, 
+
+1. The predictors are normally distributed for each class of the response.
+
+2. The covariance matrices for each class of the response are homogeneous.
+
+When we check the first assumption for the predictors that are to be included in the LDA model, we see that the assumption is not met. Most of the predictors are right skewed. The variable matchDuration is bimodal. To remedy this, we tried transforming the variables, but it did not help our overall prediction accuracy. However, because issues of normality exist, we will explore QDA as well as LDA.
+
+```{r lda.assumptions.1, results='hide', message=FALSE, include=FALSE, echo=FALSE}
+
+train_final_no <- train_final[which(train_final$top.10==0),]
+train_final_yes <- train_final[which(train_final$top.10==1),]
+
+# nrow(train_final)
+# nrow(train_final_no)
+# nrow(train_final_yes)
+
+max_cols<-ncol(train_final)
+no_matrix<-as.matrix(train_final_no[,-max_cols])
+yes_matrix<-as.matrix(train_final_yes[,-max_cols])
+
+no_hist<-multi.hist(no_matrix)
+yes_hist<-multi.hist(yes_matrix)
+# par(mfrow=c(1,1))
+
+```
+
+We also checked the homogeneity of correlation matrices. we find that, overall, there are no major departures from homogeneity. The variables walkDistance and killPlace show the greatest deviances from homogenous correlations between bottom 90 and top 10 placements. Consequently, we tried removing those variables from the model. However, removing those variables reduced our prediction accuracy.
+
+Thus, we will proceed with the variables selected and see if LDA or QDA performs better.
+
+```{r lda.assumptions.2, results='hide', message=FALSE, include=FALSE, echo=FALSE}
+
+#http://www.sthda.com/english/wiki/ggplot2-quick-correlation-matrix-heatmap-r-software-and-data-visualization
+get_upper_tri <- function(cormat){
+  cormat[lower.tri(cormat)]<- NA
+  return(cormat)
+}
+
+custom_corr_plot <- function(cormat){
+  
+  upper_tri <- get_upper_tri(cormat)
+  # Melt the correlation matrix
+  melted_cormat <- melt(upper_tri, na.rm = TRUE)
+  # Create a ggheatmap
+  ggheatmap <- ggplot(melted_cormat, aes(Var2, Var1, fill = value))+
+    geom_tile(color = "white")+
+    scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+                         midpoint = 0, limit = c(-1,1), space = "Lab", 
+                         name="Pearson\nCorrelation") +
+    theme_minimal()+ # minimal theme
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+                                     size = 12, hjust = 1))+
+    coord_fixed()
+  
+  
+  p<-ggheatmap + 
+    geom_text(aes(Var2, Var1, label = value), color = "black", size = 4) +
+    theme(
+      axis.title.x = element_blank(),
+      axis.title.y = element_blank(),
+      panel.grid.major = element_blank(),
+      panel.border = element_blank(),
+      panel.background = element_blank(),
+      axis.ticks = element_blank(),
+      legend.justification = c(1, 0),
+      legend.position = c(0.6, 0.7),
+      legend.direction = "horizontal")+
+    guides(fill = guide_colorbar(barwidth = 7, barheight = 1,
+                                 title.position = "top", title.hjust = 0.5))
+  
+  return(p)
+}
+
+cormat <- round(cor(no_matrix),2)
+no <- custom_corr_plot(cormat)
+
+cormat <- round(cor(yes_matrix),2)
+yes <- custom_corr_plot(cormat)
+
+```
+
+#### LDA Results
+
+LDA has a prediction accuracy of 0.9206, with a sensitivity of 0.57479 and a specificity of 0.96099. The area under the ROC curve is 0.941.
+
+```{r lda.model, results='hide', message=FALSE, include=FALSE, echo=FALSE}
+
+# Run LDA
+lda <- lda(top.10 ~ . , data=train_final, prior=c(.9,.1))
+
+lda
+
+predict <- predict(lda,newdata=test)
+
+test_final <- test
+test_final$predcited_place <- as.vector(predict$class)
+test_final$top.10<-as.factor(test_final$top.10)
+test_final$predcited_place<-as.factor(test_final$predcited_place)
+
+xtab<-table(test_final$predcited_place,test_final$top.10)
+confusionMatrix(xtab, positive="1")
+
+predict.posteriors <- as.data.frame(predict$posterior)
+
+# Evaluate the model
+pred <- prediction(predict.posteriors[,2], test$top.10)
+roc.perf = performance(pred, measure = "tpr", x.measure = "fpr")
+auc.train <- performance(pred, measure = "auc")
+auc.train <- auc.train@y.values
+
+
+# Plot
+plot(roc.perf, main="ROC Curve - LDA")
+abline(a=0, b= 1)
+text(x = .25, y = .65 ,paste("AUC = ", round(auc.train[[1]],3), sep = ""))
+
+
+```
+
+#### QDA Results
+
+QDA has a prediction accuracy of 0.8779, with a sensitivity of 0.68262 and a specificity of 0.90071. The area under the ROC curve is 0.912.
+
+```{r qda.model, results='hide', message=FALSE, include=FALSE, echo=FALSE}
+
+qda <- qda(top.10 ~ . , data=train_final, prior=c(.9,.1))
+
+qda
+
+predict <- predict(qda,newdata=test)
+
+test_final <- test
+test_final$predcited_place <- as.vector(predict$class)
+test_final$top.10<-as.factor(test_final$top.10)
+test_final$predcited_place<-as.factor(test_final$predcited_place)
+# test_final$predcited_place<-as.factor(test_final$predcited_place)
+str(test_final)
+
+xtab<-table(test_final$predcited_place,test_final$top.10)
+confusionMatrix(xtab, positive="1")
+# confusionMatrix(test_final$predcited_place, test_final$top.10)
+
+predict.posteriors <- as.data.frame(predict$posterior)
+
+# Evaluate the model
+pred <- prediction(predict.posteriors[,2], test$top.10)
+roc.perf = performance(pred, measure = "tpr", x.measure = "fpr")
+auc.train <- performance(pred, measure = "auc")
+auc.train <- auc.train@y.values
+
+
+# Plot
+plot(roc.perf, main="ROC Curve - QDA")
+abline(a=0, b= 1)
+text(x = .25, y = .65 ,paste("AUC = ", round(auc.train[[1]],3), sep = ""))
+
+
+```
+
+#### LDA Conclusion
+Although the QDA is better at predicting the top 10 placements that were true top 10 than LDA (QDA sensitivity of 0.68 > LDA sensitivity of 0.57), QDA predicts many more incorrect top 10 placements than LDA does (1907 LDA false positives < 4853 QDA false positives). Because LDA has a better overall accuracy (0.9206 for LDA > 0.8779 for QDA), we think the LDA is a stronger model for prediction than QDA.
 
 ## Comparing Competing Models
 
@@ -194,5 +417,195 @@ top.10           |               |The target of prediction. This is a percentile
 ## Exploratory Data Analysis
 
 ## Code
+
+### LDA
+
+#### LASSO
+
+```{r code.lda.datapull, message=FALSE, include=TRUE, echo=TRUE}
+# Reduce variables to relevant continuous variables
+train1<-train[,c(5:6,8:10,12:15,19,21:27,29:30)]
+test1<-test[,c(5:6,8:10,12:15,19,21:27,29:30)]
+# train2 <- train1[,c(1,4:19)]
+# test2 <- test1[,c(1,4:19)]
+train2_alt <- train1[,c(1,4:17,19)]
+test2_alt <- test1[,c(1,4:17,19)]
+```
+
+```{r code.lda.lasso,  message=FALSE, include=TRUE, echo=TRUE}
+
+# Get data in format for LASSO
+x=model.matrix(top.10~.,train2_alt)[,-1]
+y=as.numeric(train2_alt$top.10)
+
+xtest<-model.matrix(top.10~.,test2_alt)[,-1]
+ytest<-as.numeric(test2_alt$top.10)
+
+grid=10^seq(10,-2, length =100)
+lasso.mod=glmnet(x,y,alpha=1, lambda =grid)
+
+set.seed(23) #removes kills roadKills vehicleDestroys
+cv.out=cv.glmnet(x,y,alpha=1,family="binomial") #alpha=1 performs LASSO
+lda.lasso<-plot(cv.out)
+
+# simplest model
+lda.lasso.model.coef<-coef(cv.out, cv.out$lambda.1se)
+lda.lasso.model.coef
+```
+
+```{r code.lda.train_final,  message=FALSE, include=TRUE, echo=TRUE}
+
+# Removing the kills, roadKills, and vehicleDestroys as shown above
+# Also removing rankPoints because 
+# (a) the majority of the players in these data aren't ranked and 
+# (b) the Kaggle descrption says "This ranking is inconsistent and is being deprecated in the API's next version"
+train_final <- train2_alt[,c(-4,-8,-10,-13)]
+
+```
+#### Assumption Checking
+
+```{r code.lda.assumptions.1,  message=FALSE, include=TRUE, echo=TRUE}
+
+train_final_no <- train_final[which(train_final$top.10==0),]
+train_final_yes <- train_final[which(train_final$top.10==1),]
+
+# nrow(train_final)
+# nrow(train_final_no)
+# nrow(train_final_yes)
+
+max_cols<-ncol(train_final)
+no_matrix<-as.matrix(train_final_no[,-max_cols])
+yes_matrix<-as.matrix(train_final_yes[,-max_cols])
+
+no_hist<-multi.hist(no_matrix)
+yes_hist<-multi.hist(yes_matrix)
+# par(mfrow=c(1,1))
+
+```
+
+```{r code.lda.assumptions.2,  message=FALSE, include=TRUE, echo=TRUE}
+
+#http://www.sthda.com/english/wiki/ggplot2-quick-correlation-matrix-heatmap-r-software-and-data-visualization
+get_upper_tri <- function(cormat){
+  cormat[lower.tri(cormat)]<- NA
+  return(cormat)
+}
+
+custom_corr_plot <- function(cormat){
+  
+  upper_tri <- get_upper_tri(cormat)
+  # Melt the correlation matrix
+  melted_cormat <- melt(upper_tri, na.rm = TRUE)
+  # Create a ggheatmap
+  ggheatmap <- ggplot(melted_cormat, aes(Var2, Var1, fill = value))+
+    geom_tile(color = "white")+
+    scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+                         midpoint = 0, limit = c(-1,1), space = "Lab", 
+                         name="Pearson\nCorrelation") +
+    theme_minimal()+ # minimal theme
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+                                     size = 12, hjust = 1))+
+    coord_fixed()
+  
+  
+  p<-ggheatmap + 
+    geom_text(aes(Var2, Var1, label = value), color = "black", size = 4) +
+    theme(
+      axis.title.x = element_blank(),
+      axis.title.y = element_blank(),
+      panel.grid.major = element_blank(),
+      panel.border = element_blank(),
+      panel.background = element_blank(),
+      axis.ticks = element_blank(),
+      legend.justification = c(1, 0),
+      legend.position = c(0.6, 0.7),
+      legend.direction = "horizontal")+
+    guides(fill = guide_colorbar(barwidth = 7, barheight = 1,
+                                 title.position = "top", title.hjust = 0.5))
+  
+  return(p)
+}
+
+cormat <- round(cor(no_matrix),2)
+no <- custom_corr_plot(cormat)
+
+cormat <- round(cor(yes_matrix),2)
+yes <- custom_corr_plot(cormat)
+
+```
+
+#### LDA Results
+
+```{r code.lda.model,  message=FALSE, include=TRUE, echo=TRUE}
+
+# Run LDA
+lda <- lda(top.10 ~ . , data=train_final, prior=c(.9,.1))
+
+lda
+
+predict <- predict(lda,newdata=test)
+
+test_final <- test
+test_final$predcited_place <- as.vector(predict$class)
+test_final$top.10<-as.factor(test_final$top.10)
+test_final$predcited_place<-as.factor(test_final$predcited_place)
+
+xtab<-table(test_final$predcited_place,test_final$top.10)
+confusionMatrix(xtab, positive="1")
+
+predict.posteriors <- as.data.frame(predict$posterior)
+
+# Evaluate the model
+pred <- prediction(predict.posteriors[,2], test$top.10)
+roc.perf = performance(pred, measure = "tpr", x.measure = "fpr")
+auc.train <- performance(pred, measure = "auc")
+auc.train <- auc.train@y.values
+
+
+# Plot
+plot(roc.perf, main="ROC Curve - LDA")
+abline(a=0, b= 1)
+text(x = .25, y = .65 ,paste("AUC = ", round(auc.train[[1]],3), sep = ""))
+
+
+```
+
+#### QDA Results
+
+```{r code.qda.model,  message=FALSE, include=TRUE, echo=TRUE}
+
+qda <- qda(top.10 ~ . , data=train_final, prior=c(.9,.1))
+
+qda
+
+predict <- predict(qda,newdata=test)
+
+test_final <- test
+test_final$predcited_place <- as.vector(predict$class)
+test_final$top.10<-as.factor(test_final$top.10)
+test_final$predcited_place<-as.factor(test_final$predcited_place)
+# test_final$predcited_place<-as.factor(test_final$predcited_place)
+str(test_final)
+
+xtab<-table(test_final$predcited_place,test_final$top.10)
+confusionMatrix(xtab, positive="1")
+# confusionMatrix(test_final$predcited_place, test_final$top.10)
+
+predict.posteriors <- as.data.frame(predict$posterior)
+
+# Evaluate the model
+pred <- prediction(predict.posteriors[,2], test$top.10)
+roc.perf = performance(pred, measure = "tpr", x.measure = "fpr")
+auc.train <- performance(pred, measure = "auc")
+auc.train <- auc.train@y.values
+
+
+# Plot
+plot(roc.perf, main="ROC Curve - QDA")
+abline(a=0, b= 1)
+text(x = .25, y = .65 ,paste("AUC = ", round(auc.train[[1]],3), sep = ""))
+
+
+```
 
 # References
