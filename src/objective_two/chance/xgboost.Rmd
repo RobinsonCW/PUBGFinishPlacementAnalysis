@@ -54,8 +54,8 @@ head(data)
 
 
 data <- data %>%
-  mutate(winPoints = ifelse(rankPoints != -1 & winPoints == 0, mean(winPoints), winPoints )) %>%
-  mutate(winPoints = ifelse(rankPoints != -1 & killPoints == 0, mean(killPoints), killPoints ))
+  mutate(winPoints = ifelse(rankPoints != -1 & winPoints == 0, -1, winPoints )) %>%
+  mutate(winPoints = ifelse(rankPoints != -1 & killPoints == 0, -1, killPoints ))
 
 # outliers <- data[   data$walkDistance > mean(data$walkDistance) + (sd(data$walkDistance) * 3), ]
 
@@ -69,7 +69,8 @@ data <- data %>%
 ```{r data-significant-columns}
 cols_to_keep = c("walkDistance", "killPlace", "boosts", "weaponsAcquired", "damageDealt", "heals", "kills", "top.10")
 
-cols_to_remove = c("Id", "groupId", "matchId", "matchType", "DBNOs", "revives", "winPlacePerc")
+cols_to_remove = c("Id", "groupId", "matchId", "matchType", "DBNOs", "revives", "rankPoints", "winPlacePerc",
+                   "maxPlace")
 
 head(data[cols_to_keep])
 
@@ -81,8 +82,11 @@ head(data[cols_to_keep])
 
 ```{r data-preparation}
 data.mod <- data %>%
-  select(-cols_to_remove)
-  # mutate(top.10 = factor(top.10, labels = c("No", "Yes"))) 
+  select(-cols_to_remove) %>%
+  mutate(kills= kills * 100 / numGroups) %>% # Normalized Kills
+  mutate(matchDurationLength = as.factor(ifelse(matchDuration < mean(matchDuration), "Low", "High"))) 
+
+# data.mod$numGroups <- NULL
 
 summary(data.mod)
 
@@ -116,22 +120,15 @@ train$Class <- NULL
 
 ```{r xb-boost-create-matrix}
 
+# ?xgb.DMatrix
 
-trainm <- sparse.model.matrix(top.10 ~ ., data = train)
-
-# trainm
+trainm <- sparse.model.matrix(top.10 ~ ., data = train, na.action='na.pass')
 train_label <- train[, "top.10"]
-train_matrix <- xgb.DMatrix(data = as.matrix(trainm), label = train_label)
-
-?xgb.DMatrix
-
+train_matrix <- xgb.DMatrix(data = as.matrix(trainm), label = train_label, missing = -1)
 
 testm <- sparse.model.matrix(top.10 ~ ., data = test)
-# trainm
 test_label <- test[, "top.10"]
-
-# train_label
-test_matrix <- xgb.DMatrix(data = as.matrix(testm), label = test_label)
+test_matrix <- xgb.DMatrix(data = as.matrix(testm), label = test_label, missing = -1)
 
 ```
 
@@ -153,41 +150,22 @@ watchlist <- list(train = train_matrix, test = test_matrix)
 
 ```{r xb-boost-create-matrix-3}
 
-# bst_model <- xgb.train(params = xgb_params,
-#                        data = train_matrix,
-#                        nrounds = 100,
-#                        watchlist = watchlist,
-#                        eta = 0.02,
-#                        max.depth = 15,
-#                        gamma = 0,
-#                        subsample = 0.7,
-#                        missing = NA,
-#                        seed = 1234
-#                        )
-
-# 
-# scale_pos_weight <- 48909 / 5674
-# scale_pos_weight
-
+?xgb.train
 
 bst_model <- xgb.train(params = xgb_params,
                        data = train_matrix,
-                       nrounds = 200,
+                       nrounds = 134,
                        watchlist = watchlist,
                        scale_pos_weight = 0.7,
-                       eta = 0.075,
+                       eta = 0.07,
                        max.depth = 10,
-                       gamma = 7,
+                       gamma = 5,
                        colsample_bytree = .9,
-                       subsample = 0.7,
-                       missing = NA,
+                       subsample = 0.8,
+                       missing = -1,
+                       min_child_weight = 1,
                        seed = 1234
                        )
-
-
-
-
-# bst_model <- xgboost(data = train_matrix, label = train_label, nround = 50, objective = "binary:logistic", eval_metric = "auc")
 
 # print(bst_model)
 
@@ -205,7 +183,7 @@ lines(e$iter, e$test_auc, col = "red")
 
 max(e$test_auc)
 
-e[e$test_auc ==  0.966903, ]
+e[e$test_auc ==  0.966413, ]
 
 # # Feature importance
 imp <- xgb.importance(colnames(train_matrix), model = bst_model)
@@ -222,12 +200,6 @@ xgb.plot.importance(imp)
 
 p <- predict(bst_model, newdata = test_matrix)
 # head(p)
-pred <- matrix(p, nrow = 1, ncol = length(p) ) %>%
-  t() %>%
-  data.frame() %>%
-  mutate(label = test_label, max_prob = max.col(., "last")-1)
-
-
 
 ```
 

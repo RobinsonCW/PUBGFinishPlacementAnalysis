@@ -1,0 +1,537 @@
+---
+title: "Exploratory Data Analysis"
+author: "Chance Robinson"
+date: "11/2/2019"
+output: 
+  github_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Exploratory Data Analysis
+
+## Library Imports
+
+
+```{r library-imports, quietely=TRUE, warn.conflicts=FALSE}
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+# Correlation Matrix
+library(ggcorrplot)
+library(Hmisc)
+# Downsampling
+library(caret)
+```
+
+## Load the CSV Data
+
+```{r load-data}
+
+data <- read.csv("../../../../data/pubg_solo_game_types.csv", stringsAsFactors=FALSE)
+train.full <- read.csv("../../../../data/pubg_solo_game_types_train_full.csv", stringsAsFactors=FALSE)
+
+train <- read.csv("../../../../data/pubg_solo_game_types_train_downsampled.csv", stringsAsFactors=FALSE)
+test <- read.csv("../../../../data/pubg_solo_game_types_test_full.csv", stringsAsFactors=FALSE)
+
+
+```
+
+
+
+```{r train-test-split}
+
+train.mod <- train
+#
+train.mod <- train.mod %>%
+  filter(matchType %in% c("solo")) %>%
+  mutate(top.10 = ifelse(winPlacePerc>.9, 1, 0)) 
+  # mutate(top.10 = as.factor(top.10))
+
+
+set.seed(1234)
+train.indices <- createDataPartition(y = train.mod$top.10,p = 0.7,list = FALSE)
+train.full <- train.mod[train.indices,]
+test.full <- train.mod[-train.indices,]
+
+# 
+train.downsampled <- downSample(train.full, train.full$top.10)
+train.downsampled$Class <- NULL
+
+# head(train.downsampled)
+#
+# dim(train.mod)
+# dim(train.full)
+# dim(test.full)
+# dim(train.downsampled)
+
+# write.csv(train.mod, "C:\\Users\\Chance\\pubg_solo_game_types.csv", row.names=FALSE)
+# write.csv(train.full, "C:\\Users\\Chance\\pubg_solo_game_types_train_full.csv", row.names=FALSE)
+# write.csv(train.downsampled, "C:\\Users\\Chance\\pubg_solo_game_types_train_downsampled.csv", row.names=FALSE)
+# write.csv(test.full, "C:\\Users\\Chance\\pubg_solo_game_types_test_full.csv", row.names=FALSE)
+# # 
+
+#data <- read.csv("../../../../data/pubg_solo_game_types.csv", stringsAsFactors=FALSE)
+
+
+```
+
+## Default Output
+
+
+### Data Dictionary
+
+  Column Name      |Type                  |Description
+  -----------------|----------------------|-------------------------------------------------
+  DBNOs            |Integer               |Number of enemy players knocked.
+  assists          |Integer 		          |Number of enemy players this player damaged that were killed by teammates.
+  boosts           |Integer               |Number of boost items used.
+  damageDealt      |Float 			          |Total damage dealt. Note: Self inflicted damage is subtracted.
+  headshotKills    |Integer               |Number of enemy players killed with headshots.
+  heals            |Integer               |Number of healing items used.
+  Id               |Character             |Player’s Id
+  killPlace        |Integer               |Ranking in match of number of enemy players killed.
+  killPoints       |Integer               |Kills-based external ranking of player.
+  killStreaks      |Integer               |Max number of enemy players killed in a short amount of time.
+  kills            |Integer               |Number of enemy players killed.
+  longestKill      |Float 			          |Longest distance between player and player killed at time of death. 
+  matchDuration    |Integer               |Duration of match in seconds.
+  matchId          |Character             |ID to identify match. There are no matches that are in both the training and testing set.
+  matchType        |Character             |String identifying the game mode that the data comes from. 
+  rankPoints       |Integer               |Elo-like ranking of player. 
+  revives          |Integer               |Number of times this player revived teammates.
+  rideDistance     |Float                 |Total distance traveled in vehicles measured in meters.
+  roadKills        |Integer               |Number of kills while in a vehicle.
+  swimDistance     |Float                 |Total distance traveled by swimming measured in meters.
+  teamKills        |Integer               |Number of times this player killed a teammate.
+  vehicleDestroys  |Integer               |Number of vehicles destroyed.
+  walkDistance     |Float                 |Total distance traveled on foot measured in meters.
+  weaponsAcquired  |Integer               |Number of weapons picked up.
+  winPoints        |Integer               |Win-based external ranking of player. 
+  groupId          |Character             |ID to identify a group within a match. If the same group of players plays in different matches, they will have a different groupId each time.
+  numGroups        |Integer               |Number of groups we have data for in the match.
+  maxPlace         |Integer               |Worst placement we have data for in the match. This may not match with numGroups, as sometimes the data skips over placements.
+  winPlacePerc     |Float                 |The target of prediction. This is a percentile winning placement, where 1 corresponds to 1st place, and 0 corresponds to last place in the match. 
+
+
+
+### Identify Dimensions
+
+```{r data-dimensions-data}
+dim(data)
+```
+
+
+```{r data-dimensions-data-2}
+table(data$top.10)
+```
+
+
+```{r data-dimensions-train-full}
+dim(train.full)
+
+```
+
+
+```{r data-dimensions-train}
+# dim(train)
+# 
+# train[train$Id == '8d699d579f43e1']
+```
+
+
+```{r data-dimensions-test}
+dim(test)
+```
+
+
+### Train Columns
+
+```{r data-columns}
+colnames(data)
+```
+
+
+```{r head-data}
+# head(data)
+
+```
+
+
+### Describe the Data Types
+
+
+```{r train-describe}
+str(data)
+```
+
+
+#### Missing Values
+
+```{r train-missing}
+# df_na_winPlacePerc <- train %>%
+#   filter(is.na(winPlacePerc)) 
+# 
+# df_na_winPlacePerc
+# 
+# # remove the row with no winPlacePerc   
+# train <- train[!train$Id == 'f70c74418bb064',]
+
+```
+
+
+### Numeric Columns
+
+
+#### Column Names
+
+```{r data-numeric}
+
+
+data.numeric <- data %>%
+  select_if(is.numeric)
+
+colnames(data.numeric)
+
+```
+
+#### Summary Tables
+
+```{r data-numeric-summary}
+
+summary(data.numeric)
+
+```
+
+
+
+
+
+### Non-Numeric Columns
+
+#### Column Names
+
+```{r data-non-numeric}
+
+
+data <- train %>%
+  select_if(is.character)
+
+colnames(data)
+
+```
+
+
+## Correlation Matrix
+
+
+```{r train-numeric-cor-matrix, fig.height = 10, fig.width = 10, fig.align = "center", message=FALSE, error=FALSE, warning=FALSE}
+
+# gc()
+
+# memory.size(max = FALSE)
+# memory.limit(size = NA)
+
+corr <- round(cor(data.numeric), 1)
+  
+ggcorrplot(corr, method = "square", type = "full", lab = TRUE)
+
+```
+
+
+###Correlation matrix for quantitative data
+
+```{r corr-matrix}
+# function for flattening and ordering the correlation matrix
+flattenCorrMatrix <- function(cormat, pmat) {
+  ut <- upper.tri(cormat)
+  data.frame(
+    row = rownames(cormat)[row(cormat)[ut]],
+    column = rownames(cormat)[col(cormat)[ut]],
+    cor  =(cormat)[ut],
+    p = pmat[ut]
+    )
+}
+
+
+# See what variables are correlated with each other, p-values
+correlation.matrix <- rcorr(as.matrix(data.numeric))
+corDF <- data.frame(flattenCorrMatrix(correlation.matrix$r, correlation.matrix$P))
+
+# Order the correlation matrix to show the highest correlated
+# data.frame(corDF[order(-corDF$cor),])
+quantDataModel <- corDF[which(abs(corDF$cor) >= 0.6),]
+data.frame(quantDataModel[order(-abs(quantDataModel$cor)),])
+
+```
+
+
+```{r }
+cols_to_remove = c("Id", "groupId", "matchId", "matchType", "DBNOs", "revives", "rankPoints", "winPoints", "killPoints", "winPlacePerc")
+
+train.mod <- train %>%
+  select(-cols_to_remove) %>%
+  mutate(top.10 = factor(top.10, labels = c("No", "Yes"))) 
+
+
+# head(train.mod)
+
+
+```
+
+
+### Histogram of Assists (1)
+
+Number of enemy players this player damaged that were killed by teammates.
+
+```{r}
+train.mod %>%
+  ggplot(aes(assists)) + 
+  geom_bar() +
+  facet_wrap(~ top.10) + 
+  ggtitle("Histogram of Assists by Top 10%") 
+
+```
+
+
+### Histogram of Boosts (2)
+
+Number of boost items used.
+
+```{r}
+train.mod %>%
+  ggplot(aes(boosts)) + 
+  geom_bar() +
+  facet_wrap(~ top.10) + 
+  ggtitle("Histogram of Boosts by Top 10%") 
+
+```
+
+
+### Histogram of Damage Dealt (3)
+
+Total damage dealt. Note: Self inflicted damage is subtracted.
+
+```{r}
+train.mod %>%
+  ggplot(aes(damageDealt)) + 
+  geom_histogram(binwidth = 50) +
+  facet_wrap(~ top.10) + 
+  ggtitle("Histogram of Damage Dealt by Top 10%") 
+
+```
+
+
+### Histogram of Head Shot Kills (4)
+
+Number of enemy players killed with headshots.
+
+```{r}
+train.mod %>%
+  ggplot(aes(headshotKills)) + 
+  geom_bar() +
+  facet_wrap(~ top.10) + 
+  ggtitle("Histogram of Head Shot Kills by Top 10%") 
+
+```
+
+
+### Histogram of Heals (5)
+
+Number of healing items used.
+
+```{r}
+train.mod %>%
+  ggplot(aes(heals)) + 
+  geom_bar() +
+  facet_wrap(~ top.10) + 
+  ggtitle("Histogram of Heals by Top 10%") 
+
+```
+
+### Histogram of Kill Place (6)
+
+Ranking in match of number of enemy players killed.
+
+* Note that the Top 10% of Players never go above 50
+
+```{r}
+train.mod %>%
+  ggplot(aes(killPlace)) + 
+  geom_histogram(binwidth = 5) +
+  facet_wrap(~ top.10) + 
+  ggtitle("Histogram of Kill Place by Top 10%") 
+
+```
+
+
+
+### Histogram of Kills  (7)
+
+Number of enemy players killed.
+
+
+```{r}
+train.mod %>%
+  ggplot(aes(kills)) + 
+  geom_bar() +
+  facet_wrap(~ top.10) + 
+  ggtitle("Histogram of Kills by Top 10%") 
+
+```
+
+
+
+### Histogram of Kill Streaks  (8)
+
+Max number of enemy players killed in a short amount of time.
+
+
+```{r}
+train.mod %>%
+  ggplot(aes(killStreaks)) + 
+  geom_bar() +
+  facet_wrap(~ top.10) + 
+  ggtitle("Histogram of Kill Streaks by Top 10%") 
+
+```
+
+
+### Histogram of Longest Kill (9)
+
+Longest distance between player and player killed at time of death. This may be misleading, as downing a player and driving away may lead to a large longestKill stat.
+
+
+```{r}
+train.mod %>%
+  ggplot(aes(longestKill )) + 
+  geom_histogram(binwidth = 25) +
+  facet_wrap(~ top.10) + 
+  ggtitle("Histogram of Longest Kill by Top 10%") 
+
+```
+
+
+### Histogram of Match Duration (10)
+
+Duration of match in seconds.
+
+```{r}
+train.mod %>%
+  ggplot(aes(matchDuration)) + 
+  geom_histogram(binwidth = 10) +
+  # facet_wrap(~ top.10) + 
+  ggtitle("Histogram of Match Duration") 
+
+```
+
+
+### Histogram of maxPlace (11)
+
+Worst placement we have data for in the match. This may not match with numGroups, as sometimes the data skips over placements.
+
+
+```{r}
+train.mod %>%
+  ggplot(aes(maxPlace)) + 
+  geom_bar() +
+  facet_wrap(~ top.10) + 
+  ggtitle("Histogram of maxPlace by Top 10%") 
+
+```
+
+
+### Histogram of numGroups (12)
+
+Number of groups we have data for in the match.
+
+
+```{r}
+train.mod %>%
+  ggplot(aes(numGroups)) + 
+  geom_bar() +
+  facet_wrap(~ top.10) + 
+  ggtitle("Histogram of numGroups by Top 10%") 
+
+```
+
+
+
+### Histogram of Ride Distance (13)
+
+Total distance traveled in vehicles measured in meters.
+
+```{r}
+train.mod %>%
+  ggplot(aes(rideDistance )) + 
+  geom_histogram() +
+  facet_wrap(~ top.10) + 
+  ggtitle("Histogram of Ride Distance by Top 10%") 
+
+```
+
+
+### Histogram of weapons Acquired (14)
+
+Number of weapons picked up.
+
+```{r}
+train.mod %>%
+  ggplot(aes(weaponsAcquired)) + 
+  geom_histogram(binwidth = 1) +
+  facet_wrap(~ top.10) + 
+  ggtitle("Histogram of Weapons Acquired by Top 10%") 
+
+```
+
+
+
+```{r}
+
+pca.result <- prcomp(train.mod[1:18], scale.=TRUE)
+std_dev <- pca.result$sdev
+pr_var <- std_dev^2
+prop_varex <- pr_var / sum(pr_var)
+sum(prop_varex[1:15])
+
+
+plot(cumsum(prop_varex))
+
+
+```
+
+
+
+```{r}
+
+# metric <- "Accuracy"
+# control <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
+# mtry <- sqrt(ncol(train.mod))
+# tunegrid <- expand.grid(.mtry=mtry)
+
+```
+
+```{r}
+
+# model.rf <- train(top.10~., data=train.mod, method="rf", metric=metric, tunegrid=tunegrid, trControl=control)
+```
+
+
+
+#### Sensitivity
+
+* When it was in the top 10%, how often did we predict that it was?
+
+#### Specificity
+
+* When it was in the bottom 90%, how often did we predict that it was?
+
+#### Precision
+
+* When we predicted yes, how often is it correct?
+
+

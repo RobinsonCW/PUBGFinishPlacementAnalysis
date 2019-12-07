@@ -23,14 +23,14 @@ Chance Robinson
 library(tidyverse)
 ```
 
-    ## -- Attaching packages ------------------------------------------------------------------------------------------- tidyverse 1.2.1 --
+    ## -- Attaching packages -------------------------------------------------------------------------------------------------------- tidyverse 1.2.1 --
 
     ## v ggplot2 3.2.1     v purrr   0.3.3
     ## v tibble  2.1.3     v dplyr   0.8.3
     ## v tidyr   1.0.0     v stringr 1.4.0
     ## v readr   1.3.1     v forcats 0.4.0
 
-    ## -- Conflicts ---------------------------------------------------------------------------------------------- tidyverse_conflicts() --
+    ## -- Conflicts ----------------------------------------------------------------------------------------------------------- tidyverse_conflicts() --
     ## x dplyr::filter() masks stats::filter()
     ## x dplyr::lag()    masks stats::lag()
 
@@ -207,8 +207,8 @@ head(data)
 
 ``` r
 data <- data %>%
-  mutate(winPoints = ifelse(rankPoints != -1 & winPoints == 0, mean(winPoints), winPoints )) %>%
-  mutate(winPoints = ifelse(rankPoints != -1 & killPoints == 0, mean(killPoints), killPoints ))
+  mutate(winPoints = ifelse(rankPoints != -1 & winPoints == 0, -1, winPoints )) %>%
+  mutate(winPoints = ifelse(rankPoints != -1 & killPoints == 0, -1, killPoints ))
 
 # outliers <- data[   data$walkDistance > mean(data$walkDistance) + (sd(data$walkDistance) * 3), ]
 ```
@@ -218,7 +218,8 @@ data <- data %>%
 ``` r
 cols_to_keep = c("walkDistance", "killPlace", "boosts", "weaponsAcquired", "damageDealt", "heals", "kills", "top.10")
 
-cols_to_remove = c("Id", "groupId", "matchId", "matchType", "DBNOs", "revives", "winPlacePerc")
+cols_to_remove = c("Id", "groupId", "matchId", "matchType", "DBNOs", "revives", "rankPoints", "winPlacePerc",
+                   "maxPlace")
 
 head(data[cols_to_keep])
 ```
@@ -235,8 +236,11 @@ head(data[cols_to_keep])
 
 ``` r
 data.mod <- data %>%
-  select(-cols_to_remove)
-  # mutate(top.10 = factor(top.10, labels = c("No", "Yes"))) 
+  select(-cols_to_remove) %>%
+  mutate(kills= kills * 100 / numGroups) %>% # Normalized Kills
+  mutate(matchDurationLength = as.factor(ifelse(matchDuration < mean(matchDuration), "Low", "High"))) 
+
+# data.mod$numGroups <- NULL
 
 summary(data.mod)
 ```
@@ -248,41 +252,41 @@ summary(data.mod)
     ##  Mean   :0.05562   Mean   : 1.066   Mean   : 112.62   Mean   : 0.2238  
     ##  3rd Qu.:0.00000   3rd Qu.: 2.000   3rd Qu.: 159.60   3rd Qu.: 0.0000  
     ##  Max.   :4.00000   Max.   :24.000   Max.   :2490.00   Max.   :19.0000  
-    ##      heals          killPlace        killPoints         kills        
-    ##  Min.   : 0.000   Min.   :  1.00   Min.   :   0.0   Min.   : 0.0000  
-    ##  1st Qu.: 0.000   1st Qu.: 21.00   1st Qu.:   0.0   1st Qu.: 0.0000  
-    ##  Median : 0.000   Median : 46.00   Median :   0.0   Median : 0.0000  
-    ##  Mean   : 1.012   Mean   : 46.17   Mean   : 407.8   Mean   : 0.8709  
-    ##  3rd Qu.: 1.000   3rd Qu.: 70.00   3rd Qu.:1032.0   3rd Qu.: 1.0000  
-    ##  Max.   :49.000   Max.   :100.00   Max.   :1962.0   Max.   :21.0000  
-    ##   killStreaks       longestKill      matchDuration     maxPlace     
-    ##  Min.   : 0.0000   Min.   :   0.00   Min.   : 950   Min.   : 11.00  
-    ##  1st Qu.: 0.0000   1st Qu.:   0.00   1st Qu.:1431   1st Qu.: 93.00  
-    ##  Median : 0.0000   Median :   0.00   Median :1771   Median : 96.00  
-    ##  Mean   : 0.4429   Mean   :  20.70   Mean   :1676   Mean   : 91.34  
-    ##  3rd Qu.: 1.0000   3rd Qu.:  15.91   3rd Qu.:1903   3rd Qu.: 97.00  
-    ##  Max.   :18.0000   Max.   :1001.00   Max.   :2237   Max.   :100.00  
-    ##    numGroups       rankPoints      rideDistance        roadKills        
-    ##  Min.   : 1.00   Min.   :  -1.0   Min.   :    0.00   Min.   : 0.000000  
-    ##  1st Qu.:89.00   1st Qu.:  -1.0   1st Qu.:    0.00   1st Qu.: 0.000000  
-    ##  Median :92.00   Median :1494.0   Median :    0.00   Median : 0.000000  
-    ##  Mean   :87.29   Mean   : 978.5   Mean   :  640.98   Mean   : 0.009948  
-    ##  3rd Qu.:94.00   3rd Qu.:1510.0   3rd Qu.:    1.16   3rd Qu.: 0.000000  
-    ##  Max.   :99.00   Max.   :2857.0   Max.   :33970.00   Max.   :18.000000  
-    ##   swimDistance        teamKills       vehicleDestroys    walkDistance    
-    ##  Min.   :   0.000   Min.   :0.00000   Min.   :0.00000   Min.   :    0.0  
-    ##  1st Qu.:   0.000   1st Qu.:0.00000   1st Qu.:0.00000   1st Qu.:  114.0  
-    ##  Median :   0.000   Median :0.00000   Median :0.00000   Median :  607.7  
-    ##  Mean   :   5.878   Mean   :0.01499   Mean   :0.00753   Mean   :  986.2  
-    ##  3rd Qu.:   0.000   3rd Qu.:0.00000   3rd Qu.:0.00000   3rd Qu.: 1616.0  
-    ##  Max.   :1606.000   Max.   :1.00000   Max.   :3.00000   Max.   :15370.0  
-    ##  weaponsAcquired    winPoints          top.10      
-    ##  Min.   : 0.000   Min.   : 134.0   Min.   :0.0000  
-    ##  1st Qu.: 2.000   1st Qu.: 407.8   1st Qu.:0.0000  
-    ##  Median : 3.000   Median : 407.8   Median :0.0000  
-    ##  Mean   : 3.757   Mean   : 669.6   Mean   :0.1045  
-    ##  3rd Qu.: 5.000   3rd Qu.:1032.0   3rd Qu.:0.0000  
-    ##  Max.   :52.000   Max.   :1962.0   Max.   :1.0000
+    ##      heals          killPlace        killPoints         kills         
+    ##  Min.   : 0.000   Min.   :  1.00   Min.   :   0.0   Min.   :  0.0000  
+    ##  1st Qu.: 0.000   1st Qu.: 21.00   1st Qu.:   0.0   1st Qu.:  0.0000  
+    ##  Median : 0.000   Median : 46.00   Median :   0.0   Median :  0.0000  
+    ##  Mean   : 1.012   Mean   : 46.17   Mean   : 407.8   Mean   :  0.9649  
+    ##  3rd Qu.: 1.000   3rd Qu.: 70.00   3rd Qu.:1032.0   3rd Qu.:  1.1236  
+    ##  Max.   :49.000   Max.   :100.00   Max.   :1962.0   Max.   :100.0000  
+    ##   killStreaks       longestKill      matchDuration    numGroups    
+    ##  Min.   : 0.0000   Min.   :   0.00   Min.   : 950   Min.   : 1.00  
+    ##  1st Qu.: 0.0000   1st Qu.:   0.00   1st Qu.:1431   1st Qu.:89.00  
+    ##  Median : 0.0000   Median :   0.00   Median :1771   Median :92.00  
+    ##  Mean   : 0.4429   Mean   :  20.70   Mean   :1676   Mean   :87.29  
+    ##  3rd Qu.: 1.0000   3rd Qu.:  15.91   3rd Qu.:1903   3rd Qu.:94.00  
+    ##  Max.   :18.0000   Max.   :1001.00   Max.   :2237   Max.   :99.00  
+    ##   rideDistance        roadKills          swimDistance        teamKills      
+    ##  Min.   :    0.00   Min.   : 0.000000   Min.   :   0.000   Min.   :0.00000  
+    ##  1st Qu.:    0.00   1st Qu.: 0.000000   1st Qu.:   0.000   1st Qu.:0.00000  
+    ##  Median :    0.00   Median : 0.000000   Median :   0.000   Median :0.00000  
+    ##  Mean   :  640.98   Mean   : 0.009948   Mean   :   5.878   Mean   :0.01499  
+    ##  3rd Qu.:    1.16   3rd Qu.: 0.000000   3rd Qu.:   0.000   3rd Qu.:0.00000  
+    ##  Max.   :33970.00   Max.   :18.000000   Max.   :1606.000   Max.   :1.00000  
+    ##  vehicleDestroys    walkDistance     weaponsAcquired    winPoints     
+    ##  Min.   :0.00000   Min.   :    0.0   Min.   : 0.000   Min.   :  -1.0  
+    ##  1st Qu.:0.00000   1st Qu.:  114.0   1st Qu.: 2.000   1st Qu.:  -1.0  
+    ##  Median :0.00000   Median :  607.7   Median : 3.000   Median :  -1.0  
+    ##  Mean   :0.00753   Mean   :  986.2   Mean   : 3.757   Mean   : 407.2  
+    ##  3rd Qu.:0.00000   3rd Qu.: 1616.0   3rd Qu.: 5.000   3rd Qu.:1032.0  
+    ##  Max.   :3.00000   Max.   :15370.0   Max.   :52.000   Max.   :1962.0  
+    ##      top.10       matchDurationLength
+    ##  Min.   :0.0000   High:93981         
+    ##  1st Qu.:0.0000   Low :87962         
+    ##  Median :0.0000                      
+    ##  Mean   :0.1045                      
+    ##  3rd Qu.:0.0000                      
+    ##  Max.   :1.0000
 
 ``` r
 table(data.mod$top.10)
@@ -311,24 +315,15 @@ train$Class <- NULL
 ```
 
 ``` r
-trainm <- sparse.model.matrix(top.10 ~ ., data = train)
+# ?xgb.DMatrix
 
-# trainm
+trainm <- sparse.model.matrix(top.10 ~ ., data = train, na.action='na.pass')
 train_label <- train[, "top.10"]
-train_matrix <- xgb.DMatrix(data = as.matrix(trainm), label = train_label)
+train_matrix <- xgb.DMatrix(data = as.matrix(trainm), label = train_label, missing = -1)
 
-?xgb.DMatrix
-```
-
-    ## starting httpd help server ... done
-
-``` r
 testm <- sparse.model.matrix(top.10 ~ ., data = test)
-# trainm
 test_label <- test[, "top.10"]
-
-# train_label
-test_matrix <- xgb.DMatrix(data = as.matrix(testm), label = test_label)
+test_matrix <- xgb.DMatrix(data = as.matrix(testm), label = test_label, missing = -1)
 ```
 
 ``` r
@@ -342,242 +337,164 @@ watchlist <- list(train = train_matrix, test = test_matrix)
 ```
 
 ``` r
-# bst_model <- xgb.train(params = xgb_params,
-#                        data = train_matrix,
-#                        nrounds = 100,
-#                        watchlist = watchlist,
-#                        eta = 0.02,
-#                        max.depth = 15,
-#                        gamma = 0,
-#                        subsample = 0.7,
-#                        missing = NA,
-#                        seed = 1234
-#                        )
+?xgb.train
+```
 
-# 
-# scale_pos_weight <- 48909 / 5674
-# scale_pos_weight
+    ## starting httpd help server ... done
 
-
+``` r
 bst_model <- xgb.train(params = xgb_params,
                        data = train_matrix,
-                       nrounds = 200,
+                       nrounds = 134,
                        watchlist = watchlist,
                        scale_pos_weight = 0.7,
-                       eta = 0.075,
+                       eta = 0.07,
                        max.depth = 10,
-                       gamma = 7,
+                       gamma = 5,
                        colsample_bytree = .9,
-                       subsample = 0.7,
-                       missing = NA,
+                       subsample = 0.8,
+                       missing = -1,
+                       min_child_weight = 1,
                        seed = 1234
                        )
 ```
 
-    ## [1]  train-auc:0.929110  test-auc:0.920954 
-    ## [2]  train-auc:0.954766  test-auc:0.945466 
-    ## [3]  train-auc:0.963115  test-auc:0.956133 
-    ## [4]  train-auc:0.965606  test-auc:0.958621 
-    ## [5]  train-auc:0.966267  test-auc:0.959363 
-    ## [6]  train-auc:0.967195  test-auc:0.960232 
-    ## [7]  train-auc:0.967653  test-auc:0.961024 
-    ## [8]  train-auc:0.967403  test-auc:0.960440 
-    ## [9]  train-auc:0.967701  test-auc:0.960646 
-    ## [10] train-auc:0.968146  test-auc:0.961090 
-    ## [11] train-auc:0.968330  test-auc:0.961349 
-    ## [12] train-auc:0.968706  test-auc:0.961676 
-    ## [13] train-auc:0.968657  test-auc:0.961430 
-    ## [14] train-auc:0.969100  test-auc:0.961789 
-    ## [15] train-auc:0.969489  test-auc:0.962045 
-    ## [16] train-auc:0.969839  test-auc:0.962302 
-    ## [17] train-auc:0.970070  test-auc:0.962527 
-    ## [18] train-auc:0.970444  test-auc:0.962559 
-    ## [19] train-auc:0.970599  test-auc:0.962617 
-    ## [20] train-auc:0.970605  test-auc:0.962556 
-    ## [21] train-auc:0.970763  test-auc:0.962710 
-    ## [22] train-auc:0.970898  test-auc:0.962674 
-    ## [23] train-auc:0.971098  test-auc:0.962768 
-    ## [24] train-auc:0.971264  test-auc:0.962903 
-    ## [25] train-auc:0.971165  test-auc:0.962796 
-    ## [26] train-auc:0.971455  test-auc:0.963059 
-    ## [27] train-auc:0.971624  test-auc:0.963234 
-    ## [28] train-auc:0.971628  test-auc:0.963204 
-    ## [29] train-auc:0.971960  test-auc:0.963475 
-    ## [30] train-auc:0.972067  test-auc:0.963572 
-    ## [31] train-auc:0.972121  test-auc:0.963626 
-    ## [32] train-auc:0.972454  test-auc:0.963826 
-    ## [33] train-auc:0.972501  test-auc:0.963888 
-    ## [34] train-auc:0.972729  test-auc:0.964152 
-    ## [35] train-auc:0.972779  test-auc:0.964207 
-    ## [36] train-auc:0.972946  test-auc:0.964304 
-    ## [37] train-auc:0.973032  test-auc:0.964267 
-    ## [38] train-auc:0.973129  test-auc:0.964290 
-    ## [39] train-auc:0.973156  test-auc:0.964257 
-    ## [40] train-auc:0.973240  test-auc:0.964290 
-    ## [41] train-auc:0.973340  test-auc:0.964353 
-    ## [42] train-auc:0.973444  test-auc:0.964440 
-    ## [43] train-auc:0.973656  test-auc:0.964659 
-    ## [44] train-auc:0.973923  test-auc:0.964916 
-    ## [45] train-auc:0.974014  test-auc:0.964909 
-    ## [46] train-auc:0.974145  test-auc:0.965027 
-    ## [47] train-auc:0.974213  test-auc:0.965053 
-    ## [48] train-auc:0.974235  test-auc:0.965090 
-    ## [49] train-auc:0.974334  test-auc:0.965095 
-    ## [50] train-auc:0.974354  test-auc:0.965106 
-    ## [51] train-auc:0.974420  test-auc:0.965106 
-    ## [52] train-auc:0.974450  test-auc:0.965098 
-    ## [53] train-auc:0.974517  test-auc:0.965097 
-    ## [54] train-auc:0.974569  test-auc:0.965156 
-    ## [55] train-auc:0.974775  test-auc:0.965200 
-    ## [56] train-auc:0.974911  test-auc:0.965255 
-    ## [57] train-auc:0.975015  test-auc:0.965277 
-    ## [58] train-auc:0.975066  test-auc:0.965324 
-    ## [59] train-auc:0.975162  test-auc:0.965347 
-    ## [60] train-auc:0.975219  test-auc:0.965401 
-    ## [61] train-auc:0.975240  test-auc:0.965414 
-    ## [62] train-auc:0.975347  test-auc:0.965482 
-    ## [63] train-auc:0.975382  test-auc:0.965531 
-    ## [64] train-auc:0.975466  test-auc:0.965549 
-    ## [65] train-auc:0.975606  test-auc:0.965535 
-    ## [66] train-auc:0.975651  test-auc:0.965600 
-    ## [67] train-auc:0.975711  test-auc:0.965667 
-    ## [68] train-auc:0.975754  test-auc:0.965708 
-    ## [69] train-auc:0.975887  test-auc:0.965745 
-    ## [70] train-auc:0.976023  test-auc:0.965822 
-    ## [71] train-auc:0.976065  test-auc:0.965821 
-    ## [72] train-auc:0.976118  test-auc:0.965851 
-    ## [73] train-auc:0.976118  test-auc:0.965851 
-    ## [74] train-auc:0.976210  test-auc:0.965973 
-    ## [75] train-auc:0.976283  test-auc:0.965940 
-    ## [76] train-auc:0.976350  test-auc:0.965950 
-    ## [77] train-auc:0.976372  test-auc:0.965952 
-    ## [78] train-auc:0.976488  test-auc:0.965991 
-    ## [79] train-auc:0.976518  test-auc:0.965988 
-    ## [80] train-auc:0.976590  test-auc:0.966011 
-    ## [81] train-auc:0.976668  test-auc:0.966131 
-    ## [82] train-auc:0.976728  test-auc:0.966138 
-    ## [83] train-auc:0.976779  test-auc:0.966115 
-    ## [84] train-auc:0.976883  test-auc:0.966156 
-    ## [85] train-auc:0.977008  test-auc:0.966250 
-    ## [86] train-auc:0.977056  test-auc:0.966290 
-    ## [87] train-auc:0.977133  test-auc:0.966277 
-    ## [88] train-auc:0.977199  test-auc:0.966280 
-    ## [89] train-auc:0.977279  test-auc:0.966308 
-    ## [90] train-auc:0.977333  test-auc:0.966323 
-    ## [91] train-auc:0.977395  test-auc:0.966302 
-    ## [92] train-auc:0.977402  test-auc:0.966304 
-    ## [93] train-auc:0.977442  test-auc:0.966327 
-    ## [94] train-auc:0.977528  test-auc:0.966386 
-    ## [95] train-auc:0.977528  test-auc:0.966386 
-    ## [96] train-auc:0.977573  test-auc:0.966403 
-    ## [97] train-auc:0.977611  test-auc:0.966405 
-    ## [98] train-auc:0.977640  test-auc:0.966405 
-    ## [99] train-auc:0.977640  test-auc:0.966405 
-    ## [100]    train-auc:0.977700  test-auc:0.966412 
-    ## [101]    train-auc:0.977700  test-auc:0.966412 
-    ## [102]    train-auc:0.977778  test-auc:0.966410 
-    ## [103]    train-auc:0.977861  test-auc:0.966425 
-    ## [104]    train-auc:0.977888  test-auc:0.966418 
-    ## [105]    train-auc:0.977888  test-auc:0.966418 
-    ## [106]    train-auc:0.977943  test-auc:0.966430 
-    ## [107]    train-auc:0.977995  test-auc:0.966471 
-    ## [108]    train-auc:0.977994  test-auc:0.966490 
-    ## [109]    train-auc:0.978056  test-auc:0.966485 
-    ## [110]    train-auc:0.978067  test-auc:0.966490 
-    ## [111]    train-auc:0.978159  test-auc:0.966529 
-    ## [112]    train-auc:0.978228  test-auc:0.966534 
-    ## [113]    train-auc:0.978244  test-auc:0.966525 
-    ## [114]    train-auc:0.978305  test-auc:0.966542 
-    ## [115]    train-auc:0.978401  test-auc:0.966558 
-    ## [116]    train-auc:0.978435  test-auc:0.966563 
-    ## [117]    train-auc:0.978479  test-auc:0.966569 
-    ## [118]    train-auc:0.978530  test-auc:0.966576 
-    ## [119]    train-auc:0.978611  test-auc:0.966573 
-    ## [120]    train-auc:0.978611  test-auc:0.966573 
-    ## [121]    train-auc:0.978611  test-auc:0.966573 
-    ## [122]    train-auc:0.978611  test-auc:0.966573 
-    ## [123]    train-auc:0.978637  test-auc:0.966599 
-    ## [124]    train-auc:0.978639  test-auc:0.966612 
-    ## [125]    train-auc:0.978639  test-auc:0.966612 
-    ## [126]    train-auc:0.978639  test-auc:0.966612 
-    ## [127]    train-auc:0.978721  test-auc:0.966608 
-    ## [128]    train-auc:0.978726  test-auc:0.966607 
-    ## [129]    train-auc:0.978769  test-auc:0.966614 
-    ## [130]    train-auc:0.978787  test-auc:0.966610 
-    ## [131]    train-auc:0.978828  test-auc:0.966611 
-    ## [132]    train-auc:0.978858  test-auc:0.966606 
-    ## [133]    train-auc:0.978888  test-auc:0.966602 
-    ## [134]    train-auc:0.978922  test-auc:0.966584 
-    ## [135]    train-auc:0.978970  test-auc:0.966662 
-    ## [136]    train-auc:0.978996  test-auc:0.966670 
-    ## [137]    train-auc:0.978996  test-auc:0.966670 
-    ## [138]    train-auc:0.979023  test-auc:0.966657 
-    ## [139]    train-auc:0.979051  test-auc:0.966661 
-    ## [140]    train-auc:0.979080  test-auc:0.966649 
-    ## [141]    train-auc:0.979112  test-auc:0.966675 
-    ## [142]    train-auc:0.979136  test-auc:0.966663 
-    ## [143]    train-auc:0.979216  test-auc:0.966703 
-    ## [144]    train-auc:0.979371  test-auc:0.966714 
-    ## [145]    train-auc:0.979371  test-auc:0.966714 
-    ## [146]    train-auc:0.979414  test-auc:0.966708 
-    ## [147]    train-auc:0.979447  test-auc:0.966705 
-    ## [148]    train-auc:0.979464  test-auc:0.966707 
-    ## [149]    train-auc:0.979507  test-auc:0.966713 
-    ## [150]    train-auc:0.979524  test-auc:0.966709 
-    ## [151]    train-auc:0.979539  test-auc:0.966717 
-    ## [152]    train-auc:0.979577  test-auc:0.966726 
-    ## [153]    train-auc:0.979621  test-auc:0.966745 
-    ## [154]    train-auc:0.979656  test-auc:0.966730 
-    ## [155]    train-auc:0.979691  test-auc:0.966732 
-    ## [156]    train-auc:0.979721  test-auc:0.966720 
-    ## [157]    train-auc:0.979780  test-auc:0.966783 
-    ## [158]    train-auc:0.979890  test-auc:0.966795 
-    ## [159]    train-auc:0.979890  test-auc:0.966795 
-    ## [160]    train-auc:0.979936  test-auc:0.966803 
-    ## [161]    train-auc:0.979971  test-auc:0.966807 
-    ## [162]    train-auc:0.980011  test-auc:0.966808 
-    ## [163]    train-auc:0.980011  test-auc:0.966808 
-    ## [164]    train-auc:0.980063  test-auc:0.966808 
-    ## [165]    train-auc:0.980157  test-auc:0.966799 
-    ## [166]    train-auc:0.980206  test-auc:0.966790 
-    ## [167]    train-auc:0.980261  test-auc:0.966778 
-    ## [168]    train-auc:0.980316  test-auc:0.966810 
-    ## [169]    train-auc:0.980338  test-auc:0.966817 
-    ## [170]    train-auc:0.980347  test-auc:0.966808 
-    ## [171]    train-auc:0.980347  test-auc:0.966808 
-    ## [172]    train-auc:0.980364  test-auc:0.966803 
-    ## [173]    train-auc:0.980384  test-auc:0.966802 
-    ## [174]    train-auc:0.980406  test-auc:0.966806 
-    ## [175]    train-auc:0.980470  test-auc:0.966803 
-    ## [176]    train-auc:0.980470  test-auc:0.966803 
-    ## [177]    train-auc:0.980482  test-auc:0.966794 
-    ## [178]    train-auc:0.980537  test-auc:0.966787 
-    ## [179]    train-auc:0.980537  test-auc:0.966787 
-    ## [180]    train-auc:0.980606  test-auc:0.966773 
-    ## [181]    train-auc:0.980682  test-auc:0.966758 
-    ## [182]    train-auc:0.980705  test-auc:0.966763 
-    ## [183]    train-auc:0.980759  test-auc:0.966766 
-    ## [184]    train-auc:0.980800  test-auc:0.966761 
-    ## [185]    train-auc:0.980815  test-auc:0.966762 
-    ## [186]    train-auc:0.980815  test-auc:0.966762 
-    ## [187]    train-auc:0.980841  test-auc:0.966752 
-    ## [188]    train-auc:0.980870  test-auc:0.966751 
-    ## [189]    train-auc:0.980943  test-auc:0.966754 
-    ## [190]    train-auc:0.980943  test-auc:0.966754 
-    ## [191]    train-auc:0.980980  test-auc:0.966759 
-    ## [192]    train-auc:0.981017  test-auc:0.966756 
-    ## [193]    train-auc:0.981030  test-auc:0.966762 
-    ## [194]    train-auc:0.981078  test-auc:0.966758 
-    ## [195]    train-auc:0.981109  test-auc:0.966761 
-    ## [196]    train-auc:0.981109  test-auc:0.966761 
-    ## [197]    train-auc:0.981150  test-auc:0.966759 
-    ## [198]    train-auc:0.981159  test-auc:0.966772 
-    ## [199]    train-auc:0.981212  test-auc:0.966773 
-    ## [200]    train-auc:0.981212  test-auc:0.966773
+    ## [1]  train-auc:0.963299  test-auc:0.953866 
+    ## [2]  train-auc:0.966598  test-auc:0.956796 
+    ## [3]  train-auc:0.967885  test-auc:0.958278 
+    ## [4]  train-auc:0.968754  test-auc:0.959216 
+    ## [5]  train-auc:0.969214  test-auc:0.959043 
+    ## [6]  train-auc:0.970412  test-auc:0.960442 
+    ## [7]  train-auc:0.971081  test-auc:0.961726 
+    ## [8]  train-auc:0.971263  test-auc:0.961853 
+    ## [9]  train-auc:0.971948  test-auc:0.962323 
+    ## [10] train-auc:0.972281  test-auc:0.962843 
+    ## [11] train-auc:0.972581  test-auc:0.962902 
+    ## [12] train-auc:0.972851  test-auc:0.963033 
+    ## [13] train-auc:0.973085  test-auc:0.963281 
+    ## [14] train-auc:0.973163  test-auc:0.963202 
+    ## [15] train-auc:0.973590  test-auc:0.963284 
+    ## [16] train-auc:0.973804  test-auc:0.963250 
+    ## [17] train-auc:0.974099  test-auc:0.963509 
+    ## [18] train-auc:0.974513  test-auc:0.963827 
+    ## [19] train-auc:0.974723  test-auc:0.963914 
+    ## [20] train-auc:0.974954  test-auc:0.963988 
+    ## [21] train-auc:0.975177  test-auc:0.964132 
+    ## [22] train-auc:0.975387  test-auc:0.964262 
+    ## [23] train-auc:0.975699  test-auc:0.964249 
+    ## [24] train-auc:0.975845  test-auc:0.964311 
+    ## [25] train-auc:0.975982  test-auc:0.964473 
+    ## [26] train-auc:0.976129  test-auc:0.964535 
+    ## [27] train-auc:0.976347  test-auc:0.964556 
+    ## [28] train-auc:0.976558  test-auc:0.964562 
+    ## [29] train-auc:0.976686  test-auc:0.964570 
+    ## [30] train-auc:0.976760  test-auc:0.964585 
+    ## [31] train-auc:0.976868  test-auc:0.964575 
+    ## [32] train-auc:0.977034  test-auc:0.964571 
+    ## [33] train-auc:0.977136  test-auc:0.964541 
+    ## [34] train-auc:0.977276  test-auc:0.964585 
+    ## [35] train-auc:0.977482  test-auc:0.964631 
+    ## [36] train-auc:0.977650  test-auc:0.964552 
+    ## [37] train-auc:0.977728  test-auc:0.964579 
+    ## [38] train-auc:0.977962  test-auc:0.964811 
+    ## [39] train-auc:0.978107  test-auc:0.964880 
+    ## [40] train-auc:0.978198  test-auc:0.965040 
+    ## [41] train-auc:0.978325  test-auc:0.965168 
+    ## [42] train-auc:0.978367  test-auc:0.965255 
+    ## [43] train-auc:0.978462  test-auc:0.965317 
+    ## [44] train-auc:0.978655  test-auc:0.965408 
+    ## [45] train-auc:0.978743  test-auc:0.965501 
+    ## [46] train-auc:0.978906  test-auc:0.965588 
+    ## [47] train-auc:0.978989  test-auc:0.965666 
+    ## [48] train-auc:0.979062  test-auc:0.965713 
+    ## [49] train-auc:0.979220  test-auc:0.965787 
+    ## [50] train-auc:0.979326  test-auc:0.965928 
+    ## [51] train-auc:0.979385  test-auc:0.965946 
+    ## [52] train-auc:0.979579  test-auc:0.966001 
+    ## [53] train-auc:0.979735  test-auc:0.966045 
+    ## [54] train-auc:0.979804  test-auc:0.966074 
+    ## [55] train-auc:0.979856  test-auc:0.966076 
+    ## [56] train-auc:0.979909  test-auc:0.966086 
+    ## [57] train-auc:0.979943  test-auc:0.966105 
+    ## [58] train-auc:0.980006  test-auc:0.966108 
+    ## [59] train-auc:0.980087  test-auc:0.966116 
+    ## [60] train-auc:0.980170  test-auc:0.966150 
+    ## [61] train-auc:0.980324  test-auc:0.966173 
+    ## [62] train-auc:0.980342  test-auc:0.966168 
+    ## [63] train-auc:0.980378  test-auc:0.966181 
+    ## [64] train-auc:0.980419  test-auc:0.966172 
+    ## [65] train-auc:0.980473  test-auc:0.966162 
+    ## [66] train-auc:0.980594  test-auc:0.966185 
+    ## [67] train-auc:0.980648  test-auc:0.966188 
+    ## [68] train-auc:0.980838  test-auc:0.966259 
+    ## [69] train-auc:0.980930  test-auc:0.966277 
+    ## [70] train-auc:0.981033  test-auc:0.966342 
+    ## [71] train-auc:0.981081  test-auc:0.966380 
+    ## [72] train-auc:0.981115  test-auc:0.966384 
+    ## [73] train-auc:0.981197  test-auc:0.966392 
+    ## [74] train-auc:0.981233  test-auc:0.966396 
+    ## [75] train-auc:0.981303  test-auc:0.966402 
+    ## [76] train-auc:0.981350  test-auc:0.966381 
+    ## [77] train-auc:0.981384  test-auc:0.966398 
+    ## [78] train-auc:0.981469  test-auc:0.966412 
+    ## [79] train-auc:0.981526  test-auc:0.966419 
+    ## [80] train-auc:0.981542  test-auc:0.966416 
+    ## [81] train-auc:0.981552  test-auc:0.966411 
+    ## [82] train-auc:0.981600  test-auc:0.966394 
+    ## [83] train-auc:0.981662  test-auc:0.966389 
+    ## [84] train-auc:0.981747  test-auc:0.966440 
+    ## [85] train-auc:0.981802  test-auc:0.966478 
+    ## [86] train-auc:0.981859  test-auc:0.966461 
+    ## [87] train-auc:0.982044  test-auc:0.966500 
+    ## [88] train-auc:0.982150  test-auc:0.966514 
+    ## [89] train-auc:0.982212  test-auc:0.966537 
+    ## [90] train-auc:0.982272  test-auc:0.966550 
+    ## [91] train-auc:0.982306  test-auc:0.966543 
+    ## [92] train-auc:0.982337  test-auc:0.966543 
+    ## [93] train-auc:0.982355  test-auc:0.966545 
+    ## [94] train-auc:0.982424  test-auc:0.966535 
+    ## [95] train-auc:0.982574  test-auc:0.966548 
+    ## [96] train-auc:0.982620  test-auc:0.966546 
+    ## [97] train-auc:0.982724  test-auc:0.966558 
+    ## [98] train-auc:0.982825  test-auc:0.966591 
+    ## [99] train-auc:0.982895  test-auc:0.966594 
+    ## [100]    train-auc:0.982924  test-auc:0.966606 
+    ## [101]    train-auc:0.982990  test-auc:0.966615 
+    ## [102]    train-auc:0.983112  test-auc:0.966660 
+    ## [103]    train-auc:0.983206  test-auc:0.966661 
+    ## [104]    train-auc:0.983264  test-auc:0.966656 
+    ## [105]    train-auc:0.983278  test-auc:0.966661 
+    ## [106]    train-auc:0.983324  test-auc:0.966650 
+    ## [107]    train-auc:0.983336  test-auc:0.966653 
+    ## [108]    train-auc:0.983380  test-auc:0.966659 
+    ## [109]    train-auc:0.983460  test-auc:0.966652 
+    ## [110]    train-auc:0.983548  test-auc:0.966640 
+    ## [111]    train-auc:0.983559  test-auc:0.966667 
+    ## [112]    train-auc:0.983575  test-auc:0.966666 
+    ## [113]    train-auc:0.983655  test-auc:0.966660 
+    ## [114]    train-auc:0.983683  test-auc:0.966643 
+    ## [115]    train-auc:0.983740  test-auc:0.966673 
+    ## [116]    train-auc:0.983809  test-auc:0.966649 
+    ## [117]    train-auc:0.983818  test-auc:0.966653 
+    ## [118]    train-auc:0.983888  test-auc:0.966640 
+    ## [119]    train-auc:0.983970  test-auc:0.966631 
+    ## [120]    train-auc:0.984008  test-auc:0.966627 
+    ## [121]    train-auc:0.984131  test-auc:0.966628 
+    ## [122]    train-auc:0.984218  test-auc:0.966621 
+    ## [123]    train-auc:0.984294  test-auc:0.966657 
+    ## [124]    train-auc:0.984349  test-auc:0.966656 
+    ## [125]    train-auc:0.984382  test-auc:0.966663 
+    ## [126]    train-auc:0.984404  test-auc:0.966658 
+    ## [127]    train-auc:0.984425  test-auc:0.966667 
+    ## [128]    train-auc:0.984425  test-auc:0.966667 
+    ## [129]    train-auc:0.984432  test-auc:0.966669 
+    ## [130]    train-auc:0.984518  test-auc:0.966671 
+    ## [131]    train-auc:0.984521  test-auc:0.966673 
+    ## [132]    train-auc:0.984549  test-auc:0.966671 
+    ## [133]    train-auc:0.984598  test-auc:0.966664 
+    ## [134]    train-auc:0.984619  test-auc:0.966668
 
 ``` r
-# bst_model <- xgboost(data = train_matrix, label = train_label, nround = 50, objective = "binary:logistic", eval_metric = "auc")
-
 # print(bst_model)
 
 
@@ -586,8 +503,8 @@ prd <- predict(bst_model, test_matrix)
 head(prd)
 ```
 
-    ## [1] 0.0004228782 0.7835159302 0.8222096562 0.0112904962 0.0044202749
-    ## [6] 0.5325421095
+    ## [1] 0.0005110455 0.8080962300 0.6487966776 0.0184427071 0.0050845360
+    ## [6] 0.5692574978
 
 ``` r
 e <- data.frame(bst_model$evaluation_log)
@@ -596,12 +513,12 @@ head(e)
 ```
 
     ##   iter train_auc test_auc
-    ## 1    1  0.929110 0.920954
-    ## 2    2  0.954766 0.945466
-    ## 3    3  0.963115 0.956133
-    ## 4    4  0.965606 0.958621
-    ## 5    5  0.966267 0.959363
-    ## 6    6  0.967195 0.960232
+    ## 1    1  0.963299 0.953866
+    ## 2    2  0.966598 0.956796
+    ## 3    3  0.967885 0.958278
+    ## 4    4  0.968754 0.959216
+    ## 5    5  0.969214 0.959043
+    ## 6    6  0.970412 0.960442
 
 ``` r
 plot(e$iter, e$train_auc, col = "blue")
@@ -614,10 +531,10 @@ lines(e$iter, e$test_auc, col = "red")
 max(e$test_auc)
 ```
 
-    ## [1] 0.966817
+    ## [1] 0.966673
 
 ``` r
-e[e$test_auc ==  0.966903, ]
+e[e$test_auc ==  0.966413, ]
 ```
 
     ## [1] iter      train_auc test_auc 
@@ -637,10 +554,6 @@ xgb.plot.importance(imp)
 ``` r
 p <- predict(bst_model, newdata = test_matrix)
 # head(p)
-pred <- matrix(p, nrow = 1, ncol = length(p) ) %>%
-  t() %>%
-  data.frame() %>%
-  mutate(label = test_label, max_prob = max.col(., "last")-1)
 ```
 
 ### Test
@@ -663,26 +576,26 @@ confusionMatrix(data=as.factor(p),
     ## 
     ##           Reference
     ## Prediction     0     1
-    ##          0 43749   415
-    ##          1  5160  5259
+    ##          0 43687   402
+    ##          1  5222  5272
     ##                                           
-    ##                Accuracy : 0.8979          
-    ##                  95% CI : (0.8953, 0.9004)
+    ##                Accuracy : 0.897           
+    ##                  95% CI : (0.8944, 0.8995)
     ##     No Information Rate : 0.896           
-    ##     P-Value [Acc > NIR] : 0.08331         
+    ##     P-Value [Acc > NIR] : 0.2441          
     ##                                           
-    ##                   Kappa : 0.5997          
+    ##                   Kappa : 0.5979          
     ##                                           
-    ##  Mcnemar's Test P-Value : < 2e-16         
+    ##  Mcnemar's Test P-Value : <2e-16          
     ##                                           
-    ##             Sensitivity : 0.92686         
-    ##             Specificity : 0.89450         
-    ##          Pos Pred Value : 0.50475         
-    ##          Neg Pred Value : 0.99060         
+    ##             Sensitivity : 0.92915         
+    ##             Specificity : 0.89323         
+    ##          Pos Pred Value : 0.50238         
+    ##          Neg Pred Value : 0.99088         
     ##              Prevalence : 0.10395         
-    ##          Detection Rate : 0.09635         
-    ##    Detection Prevalence : 0.19088         
-    ##       Balanced Accuracy : 0.91068         
+    ##          Detection Rate : 0.09659         
+    ##    Detection Prevalence : 0.19226         
+    ##       Balanced Accuracy : 0.91119         
     ##                                           
     ##        'Positive' Class : 1               
     ## 
