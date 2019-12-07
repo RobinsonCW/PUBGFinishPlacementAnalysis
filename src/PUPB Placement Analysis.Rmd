@@ -28,10 +28,38 @@ editor_options:
 ---
 
 ```{r, lib-read, results='hide', message=FALSE, include=FALSE, echo=FALSE}
+
 setwd('.')
 
 # library imports
 library(tidyverse)
+library(knitr)
+
+# Random Forest
+library(randomForest)  
+# downSample
+library(caret)
+# ROC Curves
+library(ROCR)
+library(pROC)
+# outlier and leverage plots
+library(olsrr)
+
+```
+
+
+```{r, load-data, results='hide', message=FALSE, include=FALSE, echo=FALSE}
+
+train <- read.csv("./data/pubg_solo_game_types_train_downsampled.csv", stringsAsFactors=FALSE)
+test <- read.csv("./data/pubg_solo_game_types_test_full.csv", stringsAsFactors=FALSE)
+
+
+train <- train %>%
+  mutate(top.10 = factor(top.10, labels = c("0", "1")))
+
+
+test <- test %>%
+  mutate(top.10 = factor(top.10, labels = c("0", "1")))
 
 
 ```
@@ -44,7 +72,7 @@ library(tidyverse)
 
 # Data Description
 
-The source data is available on Kaggle.com under the competition PUBG Finish Placement Prediction. The files used in our analysis were transformed to fit the requirements of a binomial logistic regression classifier.  The data has also been pre-split into training and test files for consistency when comparing our different model types.  Additionally, as the percentage-based nature of the top 10% of players is inherently unbalanced, we've also down sampled the higher frequency data to match that over the lower frequency outcome of the top 10% of players.
+The source data is available on Kaggle.com under the competition PUBG Finish Placement Prediction. The files used in our analysis were transformed to fit the requirements of a binomial logistic regression classifier.  The data has also been pre-split into training and test files for consistency when comparing our different model types.  Additionally, as the percentage-based nature of the top 10% of players is inherently unbalanced, we've also downsampled the higher frequency data to match that over the lower frequency outcome of the top 10% of players.
 
 
 `pubg_solo_game_types.csv`  
@@ -121,6 +149,11 @@ top.10           |               |The target of prediction. This is a percentile
 
 
 ## Comparing Competing Models
+
+1) AUC 
+2) Sen 
+3) Spec 
+4) Err Rate (1 - Accuracy)
 
 
 ## Model Interpretation
