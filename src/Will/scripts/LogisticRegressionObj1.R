@@ -14,8 +14,8 @@ test$top.10 <- as.factor(test$top.10)
 #trainDownSampled$walkDistance <- trainDownSampled$walkDistance/1000
 #test$walkDistance <- test$walkDistance/1000
 ## These variables were identified in eda as not suitable for modeling.
-varsToDrop <- c("Id","groupId","matchId","DBNOs","matchDuration","matchType",
-                "maxPlace","numGroups","revives","winPlacePerc")
+varsToDrop <- c("Id","groupId","matchId","matchDuration","matchType",
+                "maxPlace","numGroups","winPlacePerc")
 
 ## Removing the variables above from the train data
 train <- trainDownSampled %>% select(-varsToDrop)
@@ -159,7 +159,8 @@ model.data <- augment(model.final.lasso) %>%
   influential <- model.data %>% 
     filter(abs(.std.resid) > 3)  
   #assists + boosts + heals + weaponsAcquired + kills + walkDistance
-  model.inf4 <- glm(top.10~assists + boosts + heals + weaponsAcquired + kills + walkDistance + rideDistance,
+  model.inf4 <- glm(top.10~boosts + assists 
+                    + weaponsAcquired + kills + walkDistance,
                     data= train, family = binomial(link="logit"))
   summary(model.inf4)
   
