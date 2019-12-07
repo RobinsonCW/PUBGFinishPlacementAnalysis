@@ -29,11 +29,12 @@ editor_options:
 
 
 ---
-```{r, lib-read, results='hide', message=FALSE, include=FALSE, echo=FALSE, eval=FALSE}
+```{r, lib-read, results='hide', message=FALSE, include=FALSE, echo=FALSE, eval=TRUE}
 
-setwd('./src/')
+#setwd('./src/')
 
 # library imports
+library(MASS)
 library(tidyverse)
 library(knitr)
 
@@ -53,16 +54,20 @@ library(RColorBrewer)
 library(psych)
 library(glmnet)
 library(reshape2)
-library(MASS)
-library(e1071)
 
+library(e1071)
+library(corrplot)
+library(GGally)
+library(formattable)
+library(dlookr)
 ```
 
 
-```{r, load-data, results='hide', message=FALSE, include=FALSE, echo=FALSE, eval=FALSE}
+```{r, load-data, results='hide', message=FALSE, include=FALSE, echo=FALSE, eval=TRUE}
 
 train <- read.csv("../data/pubg_solo_game_types_train_downsampled.csv", stringsAsFactors=FALSE)
 test <- read.csv("../data/pubg_solo_game_types_test_full.csv", stringsAsFactors=FALSE)
+solo <- read_csv("../data/pubg_solo_game_types.csv") %>% dplyr::select(-c("DBNOs","revives"))
 
 # Chance
 # train <- read.csv("C:/Users/Chance/github/smu/PUBGFinishPlacementAnalysis/data/datapubg_solo_game_types_train_downsampled.csv", stringsAsFactors=FALSE)
@@ -154,31 +159,263 @@ top.10           |               |The target of prediction. This is a percentile
 ## Exploratory Data Analysis
 
 
-# Objective I Analysis
+# Objective I Analysis  
+
+```{r Obj1_Data_Prep, results='hide', message=FALSE, include=FALSE, echo=FALSE, eval=TRUE}
+library(tidyverse)
+solo <- solo %>% mutate(
+DurationCut = as.factor(ifelse(matchDuration > 1600,1,0)),
+kpCut = as.factor(ifelse(killPoints > 0,1,0)),
+wpCut = as.factor(ifelse(winPoints > 0,1,0)),
+rpCut = as.factor(ifelse(rankPoints > -1,1,0)),
+boostCut = as.factor(ifelse(boosts >= 2,1,0)),
+healCut = as.factor(ifelse(heals >= 2,1,0)),
+walkCut = as.factor(ifelse(walkDistance >= 1250,1,0)),
+weaponCut = as.factor(ifelse(weaponsAcquired >= 3,1,0)),
+killCut = as.factor(ifelse(kills >= 2,1,0)),
+assistCut = as.factor(ifelse(assists >= 2,1,0)),
+damageCut = as.factor(ifelse(damageDealt >= 250,1,0)),
+streakCut = as.factor(ifelse(killStreaks >= 1,1,0)),
+killsPK = kills/(walkDistance+1/1000),
+damageKill = kills/(damageDealt+1)
+)
+
+test_obj1 <- test %>% mutate(
+  DurationCut = as.factor(ifelse(matchDuration > 1600,1,0)),
+  kpCut = as.factor(ifelse(killPoints > 0,1,0)),
+  wpCut = as.factor(ifelse(winPoints > 0,1,0)),
+  rpCut = as.factor(ifelse(rankPoints > -1,1,0)),
+  boostCut = as.factor(ifelse(boosts >= 2,1,0)),
+  healCut = as.factor(ifelse(heals >= 2,1,0)),
+  walkCut = as.factor(ifelse(walkDistance >= 1250,1,0)),
+  weaponCut = as.factor(ifelse(weaponsAcquired >= 3,1,0)),
+  killCut = as.factor(ifelse(kills >= 2,1,0)),
+  assistCut = as.factor(ifelse(assists >= 2,1,0)),
+  damageCut = as.factor(ifelse(damageDealt >= 250,1,0)),
+  streakCut = as.factor(ifelse(killStreaks >= 1,1,0)),
+  killsPK = kills/(walkDistance+1/1000),
+  damageKill = kills/(damageDealt+1)
+)
+
+train_obj1 <- train %>% mutate(
+  DurationCut = as.factor(ifelse(matchDuration > 1600,1,0)),
+  kpCut = as.factor(ifelse(killPoints > 0,1,0)),
+  wpCut = as.factor(ifelse(winPoints > 0,1,0)),
+  rpCut = as.factor(ifelse(rankPoints > -1,1,0)),
+  boostCut = as.factor(ifelse(boosts >= 2,1,0)),
+  healCut = as.factor(ifelse(heals >= 2,1,0)),
+  walkCut = as.factor(ifelse(walkDistance >= 1250,1,0)),
+  weaponCut = as.factor(ifelse(weaponsAcquired >= 3,1,0)),
+  killCut = as.factor(ifelse(kills >= 2,1,0)),
+  assistCut = as.factor(ifelse(assists >= 2,1,0)),
+  damageCut = as.factor(ifelse(damageDealt >= 250,1,0)),
+  streakCut = as.factor(ifelse(killStreaks >= 1,1,0)),
+  killsPK = kills/(walkDistance+1/1000),
+  damageKill = kills/(damageDealt+1)
+)
+
+## References to groups of columns
+varGroupKill <- c("damageDealt","headshotKills","kills","killStreaks","roadKills","vehicleDestroys","weaponsAcquired")
+varGroupTeam <- c("assists","boosts","heals","teamKills")
+varGroupDistance <- c("longestKill","rideDistance","swimDistance","walkDistance")
+varGroupPoints <- c("killPoints","winPoints","rankPoints","winPlacePerc","matchDuration")
+
+## Helper Functions
+plotRoc <- function(preds, truth) {
+  pred <- prediction(preds, truth)
+  roc.perf = performance(pred, measure = "tpr", x.measure = "fpr")
+  auc.train <- performance(pred, measure = "auc")
+  auc.train <- auc.train@y.values
+  
+  #Plot ROC
+  par(mar=c(4,4,4,4))
+  plot(roc.perf,main="Ordinary Logistic")
+  abline(a=0, b= 1) #Ref line indicating poor performance
+  text(x = .40, y = .6,paste("AUC = ", round(auc.train[[1]],3), sep = ""))
+  table(test$top.10, useNA = "ifany")
+}
+scoreMod <- function(model.out) {
+  model.pred <- predict(model.out, newdata = test, type = "response")
+  plotRoc(model.pred,test_obj1$top.10)
+  confusionMatrix(as.factor(as.numeric(model.pred > 0.5)), test_obj1$top.10, positive = "1")
+}
+```
 
 
-## Question of Interest
+## Problem Statement  
+
+We would like to predict if a player finished in the top 10 of a PUBG match based on their stats during the match. Our response variable is top.10, which is 1 if the player finished in the top 10 and 0 if they did not. We will start with a logistic regression model before moving into more complex methods.  
+
+## Establishing the Initial Model  
+
+During EDA, we discovered a number of variables that would not be useful for prediction, either because they were ID columns or match characteristics that were not relevant to individual player performance. Removing those, our first model contains all the remaining variables.  
+```{r obj1_model1, message=FALSE, include=TRUE, echo=FALSE, eval=TRUE}
+## Logistic Model 1 - "The Kitchen Sink"
+model.main <- glm(top.10~assists + boosts + heals + teamKills + weaponsAcquired +
+                    damageDealt + headshotKills + kills + killStreaks + roadKills + vehicleDestroys + 
+                    killPlace + killPoints  + rankPoints + winPoints +
+                    longestKill + swimDistance + rideDistance + walkDistance,
+                  data= train_obj1, family = binomial(link="logit"))
+summary(model.main)
+#vif(model.main) ## Kill points and win points super correlated
+#scoreMod(model.main)
+```
+
+We can see some insignificant variables, and the vif (Appendix Ref) will show some correlation. This model performance of this model is as follows: 
+
+Model   |AUC     |Sensitivity |Specificity | Error Rate (1 - Accuracy)
+--------|--------|------------|------------|--------------------------
+Initial | 0.941  | 0.891      | 0.843      | 15.2%
 
 
-## Model Selection
+## Variable Selection 
+
+Next, we use lasso to narrow these down to the most important variables. First, we used cv.glmnet to search for the ideal value of lambda for the lasso regression (Appendix Reference). We selected the lambda.1se value, which will hopefully eliminate the most variables. Using that value for lambda, lasso produced this output:
+
+```{r obj1_lasso, message=FALSE, include=TRUE, echo=FALSE, eval=TRUE}
+set.seed(1234)
+x <- model.matrix(top.10~assists + boosts + heals + teamKills + weaponsAcquired +
+                    damageDealt + headshotKills + kills + killStreaks + roadKills + vehicleDestroys + 
+                    killPlace + killPoints  + rankPoints + winPoints +
+                    longestKill + swimDistance + rideDistance + walkDistance, data=train_obj1)
+cv.lasso <- cv.glmnet(x, train_obj1$top.10, alpha = 1, family = "binomial")
+plot(cv.lasso)
+
+#cv.lasso$lambda.min
+#coef(cv.lasso, cv.lasso$lambda.min)
+#cv.lasso$lambda.1se
+#coef(cv.lasso, cv.lasso$lambda.1se)
 
 
-[Logistic Regression, Ridge, Lasso and Elastic Net]
+model.lasso <- glmnet(x, train_obj1$top.10, alpha = 1, family = "binomial",
+                      lambda = cv.lasso$lambda.1se)
 
+coef(model.lasso)
+
+#x.test <- model.matrix(top.10~assists + boosts + heals + teamKills + weaponsAcquired +
+#                    damageDealt + headshotKills + kills + killStreaks + roadKills + vehicleDestroys + 
+#                    killPlace + killPoints  + rankPoints + winPoints +
+#                    longestKill + swimDistance + rideDistance + walkDistance, data=test_obj1)
+
+#lasso.pred <- predict(model.lasso, newx = x.test)
+#plotRoc(lasso.pred,test_obj1$top.10)
+#confusionMatrix(as.factor(as.numeric(lasso.pred > 0.5)), test_obj1$top.10, positive = "1")
+```
+
+## Final Iterations
+
+The selection eliminated damageDealt, headshotKills, and killPoints. We created a model using just the variables from lasso (ref) and found two issues. First, winPoints and rankPoints have high VIFs. Removing them individually found that when one is missing, the other is no longer significant. We decided to remove them both. Second, the cooksD plot shows 3 potentially influential points. All three points have high values ( > p99 threshold) for roadKills and killStreaks, and I also found through adding and removing variables that swimDistance contributes influential points. We chose to remove these variables, as a very small part of the population has high values in these metrics, and it negatively effects the model.  
+
+```{r obj1_final, message=FALSE, include=TRUE, echo=FALSE, eval=TRUE}
+model.final.lasso <- glm(top.10~assists + boosts + heals + teamKills + weaponsAcquired +
+                    kills + killStreaks + roadKills + vehicleDestroys + 
+                    killPlace + rankPoints + winPoints +
+                    longestKill + swimDistance + rideDistance + walkDistance,
+                  data= train_obj1, family = binomial(link="logit"))
+#summary(model.final.lasso)
+#vif(model.final.lasso) ## Kill points and win points super correlated
+```
+
+Here we can see influential points from the Cook's D chart.  
+
+```{r obj1_finalb, message=FALSE, include=TRUE, echo=FALSE, eval=TRUE}
+plot(model.final.lasso, which = 4, id.n = 3)
+#scoreMod(model.final.lasso)
+
+
+#model.data %>% top_n(3, .cooksd)
+
+## trying to remove some of the influential points and correlated vars
+  #No rankpoints
+
+model.inf1 <- glm(top.10~assists + boosts + heals + teamKills + weaponsAcquired +
+                           kills + killStreaks + roadKills + vehicleDestroys + 
+                           killPlace + winPoints +
+                           longestKill + swimDistance + rideDistance + walkDistance,
+                         data= train_obj1, family = binomial(link="logit"))
+#summary(model.inf1)
+#vif(model.inf1)
+##winpoints no longer significant  
+#No winpoints
+model.inf2 <- glm(top.10~assists + boosts + heals + teamKills + weaponsAcquired +
+                    kills + killStreaks + roadKills + vehicleDestroys + 
+                    killPlace + rankPoints +
+                    longestKill + swimDistance + rideDistance + walkDistance,
+                  data= train_obj1, family = binomial(link="logit"))
+#summary(model.inf2)
+#  vif(model.inf2)
+##rankpoints not significant
+
+##neither
+
+model.inf2a <- glm(top.10~assists + boosts + heals + teamKills + weaponsAcquired +
+                    kills + vehicleDestroys + killPlace + killStreaks + roadKills + swimDistance +
+                    longestKill + rideDistance + walkDistance,
+                  data= train_obj1, family = binomial(link="logit"))
+#summary(model.inf2a)
+#vif(model.inf2a)
+
+#plot(model.inf2a, which = 4, id.n = 3)
+
+## removing killStreaks + roadKills + swimDistance
+model.inf3 <- glm(top.10~assists + boosts + heals + teamKills + weaponsAcquired +
+                  kills + vehicleDestroys + killPlace + 
+                  longestKill + rideDistance + walkDistance,
+                data= train_obj1, family = binomial(link="logit"))
+#summary(model.inf3)
+#vif(model.inf3)
+```
+
+\newpage
+
+After removing roadKills , killStreaks, and swimDistance  
+
+```{r obj1_finalc, message=FALSE, include=TRUE, echo=FALSE, eval=TRUE}
+plot(model.inf3, which = 4, id.n = 3)
+
+#scoreMod(model.inf3)
+```
+
+Final Model Coefficients  
+
+```{r obj1_finald, message=FALSE, include=TRUE, echo=FALSE, eval=TRUE}
+#assists + boosts + heals + weaponsAcquired + kills + walkDistance
+model.inf4 <- glm(top.10~assists + boosts + heals + weaponsAcquired + killPlace + walkDistance ,
+                  data= train_obj1, family = binomial(link="logit"))
+summary(model.inf4)
+#vif(model.inf4)
+#plot(model.inf4, which = 4, id.n = 3)
+
+#scoreMod(model.inf4)
+```
 
 ## Comparing Competing Models
 
-1) AUC 
-2) Sen 
-3) Spec 
-4) Err Rate (1 - Accuracy)
+Model   |AUC     |Sensitivity |Specificity | Error Rate (1 - Accuracy)
+--------|--------|------------|------------|--------------------------
+Initial | 0.941  | 0.891      | 0.843      | 15.2%
+Lasso   | 0.941  | 0.892      | 0.843      | 15.2%
+Inf. Points   | 0.936  | 0.892      | 0.842      | 15.3%
+Final   | 0.932  | 0.863      | 0.841      | 15.6%
 
 
 ## Model Interpretation
 
+We prefer the final model because it simplifies the previous versions without significant loss in accuracy.  The variable interpretations are found in the table below.
+
+Variable        | Interpretation
+----------------|--------------------------
+assists         | The log-odds of placing in the top 10 increase by 0.6225 for each additional assist
+boosts          | The log-odds of placing in the top 10 increase by 0.3067 for each additional boost
+heals           | The log-odds of placing in the top 10 decrease by -0.0228 for each additional heal
+weaponsAcquired | The log-odds of placing in the top 10 increase by 0.0790 for each additional weapon acquired
+killPlace       | The log-odds of placing in the top 10 increase by 0.0622 for each additional rank in kills (lower is better for killPlace)
+walkDistance    | The log-odds of placing in the top 10 increase by 0.0007 for each additional meter walked
+
 
 ## Conclusion
 
+Players who do well in kill placement and who travel far tend to win games. Travel distance probably is a proxy for time alive, as players eliminated early would probably not travel far. Acquiring in game items like boosts or weapons also help. The negative coeffient on heals is odd, perhaps indicating that taking more damage is detrimental to placement.  We will try to improve on the final model using more complex methods.
 
 \newpage
 
@@ -199,7 +436,7 @@ Our next prediction tool is Linear Discriminant Analysis (LDA) for classifying t
 
 The LASSO call plus manual variable selection reduced the predictors considered for the LDA model to: boosts, heals, killPlace, killStreaks, longestKill, matchDuration, rideDistance, swimDistance, teamKills, walkDistance, weaponsAcquired.
 
-```{r lda.datapull, results='hide', message=FALSE, include=FALSE, echo=FALSE, eval=FALSE}
+```{r lda.datapull, results='hide', message=FALSE, include=FALSE, echo=FALSE, eval=TRUE}
 # Reduce variables to relevant continuous variables
 train1<-train[,c(5:6,8:10,12:15,19,21:27,29:30)]
 test1<-test[,c(5:6,8:10,12:15,19,21:27,29:30)]
@@ -209,7 +446,7 @@ train2_alt <- train1[,c(1,4:17,19)]
 test2_alt <- test1[,c(1,4:17,19)]
 ```
 
-```{r lda.lasso, results='hide', message=FALSE, include=FALSE, echo=FALSE, eval=FALSE}
+```{r lda.lasso, results='hide', message=FALSE, include=FALSE, echo=FALSE, eval=TRUE}
 
 # Get data in format for LASSO
 x=model.matrix(top.10~.,train2_alt)[,-1]
@@ -230,7 +467,7 @@ lda.lasso.model.coef<-coef(cv.out, cv.out$lambda.1se)
 lda.lasso.model.coef
 ```
 
-```{r lda.train_final, results='hide', message=FALSE, include=FALSE, echo=FALSE, eval=FALSE}
+```{r lda.train_final, results='hide', message=FALSE, include=FALSE, echo=FALSE, eval=TRUE}
 
 # Removing the kills, roadKills, and vehicleDestroys as shown above
 # Also removing rankPoints because 
@@ -249,7 +486,7 @@ LDA performs optimally when the assumptions of MANOVA are met. That is,
 
 When we check the first assumption for the predictors that are to be included in the LDA model, we see that the assumption is not met. Most of the predictors are right skewed. The variable matchDuration is bimodal. To remedy this, we tried transforming the variables, but it did not help our overall prediction accuracy. However, because issues of normality exist, we will explore QDA as well as LDA.
 
-```{r lda.assumptions.1, results='hide', message=FALSE, include=FALSE, echo=FALSE, eval=FALSE}
+```{r lda.assumptions.1, results='hide', message=FALSE, include=FALSE, echo=FALSE, eval=TRUE}
 
 train_final_no <- train_final[which(train_final$top.10==0),]
 train_final_yes <- train_final[which(train_final$top.10==1),]
@@ -272,7 +509,7 @@ We also checked the homogeneity of correlation matrices. we find that, overall, 
 
 Thus, we will proceed with the variables selected and see if LDA or QDA performs better.
 
-```{r lda.assumptions.2, results='hide', message=FALSE, include=FALSE, echo=FALSE, eval=FALSE}
+```{r lda.assumptions.2, results='hide', message=FALSE, include=FALSE, echo=FALSE, eval=TRUE}
 
 #http://www.sthda.com/english/wiki/ggplot2-quick-correlation-matrix-heatmap-r-software-and-data-visualization
 get_upper_tri <- function(cormat){
@@ -327,7 +564,7 @@ yes <- custom_corr_plot(cormat)
 
 LDA has a prediction accuracy of 0.9206, with a sensitivity of 0.57479 and a specificity of 0.96099. The area under the ROC curve is 0.941.
 
-```{r lda.model, results='hide', message=FALSE, include=FALSE, echo=FALSE, eval=FALSE}
+```{r lda.model, results='hide', message=FALSE, include=FALSE, echo=FALSE, eval=TRUE}
 
 # Run LDA
 lda <- lda(top.10 ~ . , data=train_final, prior=c(.9,.1))
@@ -365,7 +602,7 @@ text(x = .25, y = .65 ,paste("AUC = ", round(auc.train[[1]],3), sep = ""))
 
 QDA has a prediction accuracy of 0.8779, with a sensitivity of 0.68262 and a specificity of 0.90071. The area under the ROC curve is 0.912.
 
-```{r qda.model, results='hide', message=FALSE, include=FALSE, echo=FALSE, eval=FALSE}
+```{r qda.model, results='hide', message=FALSE, include=FALSE, echo=FALSE, eval=TRUE}
 
 qda <- qda(top.10 ~ . , data=train_final, prior=c(.9,.1))
 
@@ -415,7 +652,7 @@ We then tried our first non-parametrical model with Random Forest, which average
 Random Forest methods do not have the same level of assumption restrictions as many of the parametrical models we reviewed.  Fotunately, our data set had no null values to speak of which may have posed more of a problem.
 
 
-```{r rf.model, results='hide', message=FALSE, include=FALSE, echo=FALSE, eval=FALSE}
+```{r rf.model, results='hide', message=FALSE, include=FALSE, echo=FALSE, eval=TRUE}
 
 # results='hide', message=FALSE, include=FALSE, echo=FALSE
 rf_cols_to_remove = c("Id", "groupId", "matchId", "matchType", "DBNOs", "revives", "winPlacePerc")
@@ -446,7 +683,7 @@ model.rf
 ```
 
 
-```{r rf.plot, results='hide', message=FALSE, include=FALSE, echo=FALSE, eval=FALSE}
+```{r rf.plot, results='hide', message=FALSE, include=FALSE, echo=FALSE, eval=TRUE}
 
 
 plot(model.rf)
@@ -455,7 +692,7 @@ varImp(model.rf)
 ```
 
 
-```{r rf.predict, results='hide', message=FALSE, include=FALSE, echo=FALSE, eval=FALSE}
+```{r rf.predict, results='hide', message=FALSE, include=FALSE, echo=FALSE, eval=TRUE}
 
 
 prd.rf.train <- predict(model.rf, train.rf)
@@ -464,7 +701,7 @@ prd.rf.test <- predict(model.rf, test.rf)
 ```
 
 
-```{r rf.confusion.matrix, results='hide', message=FALSE, include=FALSE, echo=FALSE, eval=FALSE}
+```{r rf.confusion.matrix, results='hide', message=FALSE, include=FALSE, echo=FALSE, eval=TRUE}
 confusionMatrix(data=prd.rf.test,
                 reference=test.rf$top.10, "Yes")
 ```
@@ -472,7 +709,7 @@ confusionMatrix(data=prd.rf.test,
 
 
 
-```{r rf.area.under.curve, results='hide', message=FALSE, include=FALSE, echo=FALSE, eval=FALSE}
+```{r rf.area.under.curve, results='hide', message=FALSE, include=FALSE, echo=FALSE, eval=TRUE}
 plotRoc <- function(preds, truth) {
   pred <- prediction(preds, truth)
   roc.perf = performance(pred, measure = "tpr", x.measure = "fpr")
@@ -543,7 +780,7 @@ The following arguments were important to address bias/ variance issues that we 
 
 #### LASSO
 
-```{r code.lda.datapull, message=FALSE, include=TRUE, echo=TRUE, eval=FALSE}
+```{r code.lda.datapull, message=FALSE, include=TRUE, echo=TRUE, eval=TRUE}
 # Reduce variables to relevant continuous variables
 train1<-train[,c(5:6,8:10,12:15,19,21:27,29:30)]
 test1<-test[,c(5:6,8:10,12:15,19,21:27,29:30)]
@@ -553,7 +790,7 @@ train2_alt <- train1[,c(1,4:17,19)]
 test2_alt <- test1[,c(1,4:17,19)]
 ```
 
-```{r code.lda.lasso,  message=FALSE, include=TRUE, echo=TRUE, eval=FALSE}
+```{r code.lda.lasso,  message=FALSE, include=TRUE, echo=TRUE, eval=TRUE}
 
 # Get data in format for LASSO
 x=model.matrix(top.10~.,train2_alt)[,-1]
@@ -574,7 +811,7 @@ lda.lasso.model.coef<-coef(cv.out, cv.out$lambda.1se)
 lda.lasso.model.coef
 ```
 
-```{r code.lda.train_final,  message=FALSE, include=TRUE, echo=TRUE, eval=FALSE}
+```{r code.lda.train_final,  message=FALSE, include=TRUE, echo=TRUE, eval=TRUE}
 
 # Removing the kills, roadKills, and vehicleDestroys as shown above
 # Also removing rankPoints because 
@@ -585,7 +822,7 @@ train_final <- train2_alt[,c(-4,-8,-10,-13)]
 ```
 #### Assumption Checking
 
-```{r code.lda.assumptions.1,  message=FALSE, include=TRUE, echo=TRUE, eval=FALSE}
+```{r code.lda.assumptions.1,  message=FALSE, include=TRUE, echo=TRUE, eval=TRUE}
 
 train_final_no <- train_final[which(train_final$top.10==0),]
 train_final_yes <- train_final[which(train_final$top.10==1),]
@@ -604,7 +841,7 @@ yes_hist<-multi.hist(yes_matrix)
 
 ```
 
-```{r code.lda.assumptions.2,  message=FALSE, include=TRUE, echo=TRUE, eval=FALSE}
+```{r code.lda.assumptions.2,  message=FALSE, include=TRUE, echo=TRUE, eval=TRUE}
 
 #http://www.sthda.com/english/wiki/ggplot2-quick-correlation-matrix-heatmap-r-software-and-data-visualization
 get_upper_tri <- function(cormat){
@@ -657,7 +894,7 @@ yes <- custom_corr_plot(cormat)
 
 #### LDA Results
 
-```{r code.lda.model,  message=FALSE, include=TRUE, echo=TRUE, eval=FALSE}
+```{r code.lda.model,  message=FALSE, include=TRUE, echo=TRUE, eval=TRUE}
 
 # Run LDA
 lda <- lda(top.10 ~ . , data=train_final, prior=c(.9,.1))
@@ -693,7 +930,7 @@ text(x = .25, y = .65 ,paste("AUC = ", round(auc.train[[1]],3), sep = ""))
 
 #### QDA Results
 
-```{r code.qda.model,  message=FALSE, include=TRUE, echo=TRUE, eval=FALSE}
+```{r code.qda.model,  message=FALSE, include=TRUE, echo=TRUE, eval=TRUE}
 
 qda <- qda(top.10 ~ . , data=train_final, prior=c(.9,.1))
 
