@@ -1,0 +1,158 @@
+---
+title: "Random Forest"
+author: "Chance Robinson"
+date: "12/02/2019"
+output: 
+  github_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Exploratory Data Analysis
+
+## Library Imports
+
+
+```{r library-imports, quietely=TRUE, warn.conflicts=FALSE}
+# LDA
+library(MASS)
+# General functionality
+library(tidyverse)
+# downSample
+library(caret)
+# ROC Curves
+library(ROCR)
+library(pROC)
+
+```
+
+
+
+## Load the CSV Data
+
+```{r load-data}
+data <- read.csv("../../../data/pubg_solo_game_types.csv", stringsAsFactors=FALSE)
+
+```
+
+
+```{r head-data}
+head(data)
+```
+
+## Remove Missing Values
+
+```{r data-missing}
+
+# remove the row with no winPlacePerc   
+data <- data[!data$Id == 'f70c74418bb064',]
+
+```
+
+
+## Specify Model Columns of Interest
+
+```{r data-significant-columns}
+cols_to_keep <- c("walkDistance", "killPlace", "boosts", "weaponsAcquired", "damageDealt", "heals", "kills", "top.10")
+
+cols_to_remove <- c("Id", "groupId", "matchId", "matchType", "DBNOs", "revives", "winPlacePerc")
+
+head(data[cols_to_keep])
+
+
+```
+
+
+## Prepare Dataframe
+
+```{r data-preparation}
+
+data.mod <- data %>%
+  select(-cols_to_remove) %>%
+  mutate(top.10 = factor(top.10, labels = c("No", "Yes"))) 
+
+summary(data.mod)
+
+```
+
+
+## LDA
+
+## Train / Test Split
+
+
+```{r lda-train-test-split}
+
+set.seed(1234)
+
+split.perc = .70
+
+train.indices = sample(1:dim(data.mod)[1],round(split.perc * dim(data.mod)[1]))
+
+train = data.mod[train.indices,]
+test = data.mod[-train.indices,]
+
+train <- downSample(train, train$top.10, list = FALSE)
+train$Class <- NULL
+
+model.lda.train <- lda(top.10 ~ ., data = train)
+
+p1 <- predict(model.lda.train, train)
+
+p2 <- predict(model.lda.train, test)
+
+```
+
+## LDA Performance 
+
+### Train
+
+```{r lda-performance-train}
+
+confusionMatrix(data=p1$class,
+                reference=train$top.10, "Yes")
+```
+
+### Test
+
+```{r lda-performance-test}
+
+
+confusionMatrix(data=p2$class,
+                reference=test$top.10, "Yes")
+
+```
+
+
+### Area Under the Curve
+
+```{r rf-auc-plot-test}
+
+# ?pROC
+
+auc <- roc(as.integer(test$top.10), as.integer(p2$class))
+# print(auc)
+
+# plot(auc, ylim=c(0,1), print.thres=TRUE, main=paste('AUC of Test Set:', round(auc$auc[[1]],2)))
+# abline(h=1,col='green',lwd=2)
+# abline(h=0,col='red',lwd=2)
+
+g <- ggroc(auc, alpha = 0.5, colour = "red", linetype = 2, size = 2) +
+  theme_minimal() + 
+  ggtitle(paste('AUC of Test Set:', round(auc$auc[[1]],2))) + 
+  geom_segment(aes(x = 0, xend = 1, y = 0, yend = 1), color="darkgrey", linetype="dashed")
+  
+
+
+plot(g)
+
+
+
+
+
+```
+
+

@@ -46,5 +46,5 @@ figure/*
 *.gz
 *.tex
 
-# Ignore CSV as they are too large for this project
-*.csv
+# Ignore CSV files provided by Kaggle as they are too large for github
+*V2.csv

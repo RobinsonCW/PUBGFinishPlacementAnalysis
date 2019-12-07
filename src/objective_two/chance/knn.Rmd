@@ -1,0 +1,132 @@
+---
+title: "KNN"
+author: "Chance Robinson"
+date: "11/30/2019"
+output: 
+  github_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Exploratory Data Analysis
+
+## Library Imports
+
+
+```{r library-imports, quietely=TRUE, warn.conflicts=FALSE}
+library(tidyverse)
+# KNN
+library(caret)
+library(class)
+```
+
+
+
+## Load the CSV Data
+
+```{r load-data}
+data <- read.csv("../../../data/pubg_solo_game_types.csv", stringsAsFactors=FALSE)
+
+```
+
+
+```{r head-test}
+head(data)
+```
+
+## Remove Missing Values
+
+```{r data-missing}
+# remove the row with no winPlacePerc   
+data <- data[!data$Id == 'f70c74418bb064',]
+```
+
+
+
+## Specify Model Columns of Interest
+
+```{r data-significant-columns}
+cols_to_keep = c("walkDistance", "killPlace", "boosts", "weaponsAcquired", "damageDealt", "heals", "kills", "top.10")
+
+head(data[cols_to_keep])
+
+
+```
+
+
+## Prepare Dataframe
+
+```{r}
+data.mod <- data %>%
+  select(cols_to_keep) %>%
+  mutate(top.10 = factor(top.10, labels = c("No", "Yes"))) 
+
+summary(data.mod)
+
+# str(data.mod)
+
+```
+
+## KNN Train / Test Split
+
+```{r knn-train-test-split}
+
+# sample.data <- sample_frac(data.mod, 1)
+# 
+# sample.data <- downSample(sample.data, sample.data$top.10, list = FALSE)
+# sample.data$Class <- NULL
+
+set.seed(1234)
+
+train.indices <- createDataPartition(y = data.mod$top.10,p = 0.70, list = FALSE)
+train <- data.mod[train.indices,]
+test <- data.mod[-train.indices,]
+
+train <- downSample(train, train$top.10, list = FALSE)
+train$Class <- NULL
+
+
+set.seed(1234)
+ctrl <- trainControl(method="cv")
+knn.model <- train(top.10 ~ ., data = train, method = "knn", trControl = ctrl, preProcess = c("center","scale"), tuneLength = 10)
+
+
+# table(sample.data$top.10)
+
+# dim(sample.data) # 14800     
+# dim(train) # 10360     
+# dim(test) # 4440   
+
+
+```
+
+
+## KNN Parameter Tuning
+
+```{r knn-select-n}
+
+knn.model
+
+plot(knn.model)
+
+
+```
+
+
+
+## KNN Performance
+
+```{r knn-confusion-matrix}
+knn.predict <- predict(knn.model, newdata = test )
+confusionMatrix(knn.predict, test$top.10, "Yes")
+```
+
+
+
+
+
+
+

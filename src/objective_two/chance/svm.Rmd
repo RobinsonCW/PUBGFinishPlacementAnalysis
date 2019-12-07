@@ -1,0 +1,238 @@
+---
+title: "Support Vector Machines"
+author: "Chance Robinson"
+date: "12/04/2019"
+output: 
+  github_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Exploratory Data Analysis
+
+## Library Imports
+
+
+```{r library-imports, quietely=TRUE, warn.conflicts=FALSE}
+library(tidyverse)
+# Support Vector Machines
+library(e1071)  
+# downSample
+library(caret)
+# ROC Curves
+library(ROCR)
+library(pROC)
+```
+
+
+
+## Load the CSV Data
+
+```{r load-data}
+data <- read.csv("../../../data/pubg_solo_game_types.csv", stringsAsFactors=FALSE)
+
+```
+
+
+```{r head-data}
+head(data)
+```
+
+## Remove Missing Values
+
+```{r data-missing}
+# remove the row with no winPlacePerc   
+data <- data[!data$Id == 'f70c74418bb064',]
+
+# data <- data %>%
+#   mutate(winPoints = ifelse(rankPoints != -1 & winPoints == 0, mean(winPoints), winPoints )) %>%
+#   mutate(winPoints = ifelse(rankPoints != -1 & killPoints == 0, mean(killPoints), killPoints ))
+
+# outliers <- data[   data$walkDistance > mean(data$walkDistance) + (sd(data$walkDistance) * 3), ]
+
+
+```
+
+## Specify Model Columns of Interest
+
+```{r data-significant-columns}
+cols_to_keep = c("walkDistance", "killPlace", "boosts", "weaponsAcquired", "damageDealt", "heals", "kills", "top.10")
+
+cols_to_remove = c("Id", "groupId", "matchId", "matchType", "DBNOs", "revives", "winPlacePerc")
+
+head(data[cols_to_keep])
+
+
+```
+
+
+## Prepare Dataframe
+
+```{r data-preparation}
+data.mod <- data %>%
+  select(-cols_to_remove) %>%
+  mutate(top.10 = factor(top.10, labels = c("No", "Yes"))) 
+
+summary(data.mod)
+
+# table(data.mod$top.10)
+
+```
+
+
+## Support Vector Machines
+
+## Train / Test Split
+
+```{r svm-boost-train-test-split}
+
+set.seed(1234)
+
+sample.data <- sample_frac(data.mod, 1)
+
+split.perc = .70
+
+train.indices = sample(1:dim(sample.data)[1],round(split.perc * dim(sample.data)[1]))
+
+train = sample.data[train.indices,]
+test = sample.data[-train.indices,]
+
+train <- downSample(train, as.factor(train$top.10), list = FALSE)
+train$Class <- NULL
+
+
+```
+
+
+```{r svm-boost-model}
+
+sum <- sum(table(test$top.10))
+wts <- table(test$top.10) / sum
+
+
+model <- svm(top.10 ~ ., 
+           data = train,
+           cost = 4,
+           # gamma = 0.5,
+           # class.weights = 1,
+           scale=TRUE
+           # kernel = "sigmoid"
+           )
+
+
+summary(model)
+
+
+# set.seed(123)
+# tmodel <- tune(svm, top.10 ~ ., data = train,
+#      ranges = list(epsilon = seq(0, 1, 0.5), cost = 2^(2:3)))
+
+
+# obj <- tune.svm(top.10~., data = train, gamma = 2^(-1:1), cost = 2^(2:4))
+
+
+# obj
+
+# obj$best.parameters
+# 
+# obj$best.performance
+# 
+# obj$best.model
+
+# 
+# ?tune
+     
+```
+
+
+
+```{r svm-predict}
+
+prd <- predict(model, test)
+
+```
+
+
+### Test
+
+```{r svm-performance-test}
+
+# p <- as.factor(ifelse(p > 0.5, "1", "0"))
+# 
+# head(p)
+
+confusionMatrix(data=prd,  
+                reference=test$top.10, "Yes")
+
+
+```
+
+
+### Area Under the Curve
+
+```{r rf-auc-plot-test}
+
+# ?pROC
+
+auc <- roc(as.integer(test$top.10), as.integer(prd))
+# print(auc)
+
+# plot(auc, ylim=c(0,1), print.thres=TRUE, main=paste('AUC of Test Set:', round(auc$auc[[1]],2)))
+# abline(h=1,col='green',lwd=2)
+# abline(h=0,col='red',lwd=2)
+
+g <- ggroc(auc, alpha = 0.5, colour = "red", linetype = 2, size = 2) +
+  theme_minimal() + 
+  ggtitle(paste('AUC of Test Set:', round(auc$auc[[1]],4))) + 
+  geom_segment(aes(x = 0, xend = 1, y = 0, yend = 1), color="darkgrey", linetype="dashed")
+  
+
+plot(g)
+
+
+
+```
+
+```{r pre-train-test-split}
+
+# train <- read.csv("../../../data/pubg_solo_game_types_train_downsampled.csv", stringsAsFactors=FALSE)
+# 
+# test <- read.csv("../../../data/pubg_solo_game_types_test_full.csv", stringsAsFactors=FALSE)
+# 
+# 
+# train <- train %>%
+#   select(-cols_to_remove) %>%
+#   mutate(top.10 = factor(top.10, labels = c("No", "Yes")))
+# 
+# 
+# test <- test %>%
+#   select(-cols_to_remove) %>%
+#   mutate(top.10 = factor(top.10, labels = c("No", "Yes")))
+# 
+# 
+# model.rf.train <- randomForest(as.factor(top.10) ~ ., data = train, ntree = 275, mtry = 8, cutoff = c(0.36,1-0.36))
+# 
+# print(model.rf.train)
+# 
+# 
+# p1 <- predict(model.rf.train, train)
+# p2 <- predict(model.rf.train, test)
+# 
+# 
+# print(model.rf.train)
+# plot(model.rf.train)
+# varImp(model.rf.train)
+# 
+# 
+# confusionMatrix(data=p1,
+#                 reference=train$top.10, "Yes")
+# 
+# 
+# confusionMatrix(data=p2,
+#                 reference=test$top.10, "Yes")
+
+```
+

@@ -1,0 +1,364 @@
+---
+title: "Random Forest"
+author: "Chance Robinson"
+date: "11/30/2019"
+output: 
+  github_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Exploratory Data Analysis
+
+## Library Imports
+
+
+```{r library-imports, quietely=TRUE, warn.conflicts=FALSE}
+library(tidyverse)
+# Random Forest
+library(randomForest)  
+library(e1071)  
+# downSample
+library(caret)
+# ROC Curves
+library(ROCR)
+library(pROC)
+```
+
+
+
+## Load the CSV Data
+
+```{r load-data}
+data <- read.csv("../../../data/pubg_solo_game_types.csv", stringsAsFactors=FALSE)
+
+```
+
+
+```{r head-data}
+head(data)
+```
+
+## Remove Missing Values
+
+```{r data-missing}
+# remove the row with no winPlacePerc   
+data <- data[!data$Id == 'f70c74418bb064',]
+
+
+# summary(data$rankPoints)
+# 
+# data$rankPoints <- cut(data$rankPoints, breaks=5)
+# 
+# str(data$rankPoints)
+# (data[data$winPoints == 0,])
+# 
+# (data[data$killPoints == 0,])
+# 
+# (data[data$rankPoints != -1,])
+
+
+# data <- data %>%
+#   filter(rankPoints != -1 & winPoints == 0) %>%
+#   mutate(winPoints = 0)
+# 
+# data <- data %>%
+#   filter(rankPoints != -1 & killPoints == 0) %>%
+#   mutate(killPoints = 0)
+# 
+# 
+# outliers <- data[   data$walkDistance > mean(data$walkDistance) + (sd(data$walkDistance) * 3), ]
+# 
+# outliers
+# 
+# outliers
+# dim(data)
+
+```
+
+
+
+## Specify Model Columns of Interest
+
+```{r data-significant-columns}
+cols_to_keep = c("walkDistance", "killPlace", "boosts", "weaponsAcquired", "damageDealt", "heals", "kills", "top.10")
+
+cols_to_remove = c("Id", "groupId", "matchId", "matchType", "DBNOs", "revives", "winPlacePerc")
+
+head(data[cols_to_keep])
+
+
+```
+
+
+## Prepare Dataframe
+
+```{r data-preparation}
+data.mod <- data %>%
+  select(-cols_to_remove) %>%
+  mutate(kills  = kills * 100 / numGroups) %>% # Normalized Kills
+  mutate(matchDuration = as.factor(ifelse(matchDuration < mean(matchDuration), "Low", "High"))) %>%
+  mutate(top.10 = factor(top.10, labels = c("No", "Yes"))) 
+
+summary(data.mod)
+
+# str(data.mod)
+
+```
+
+
+## Random Forrest
+
+
+## Train / Test Split
+
+```{r rf-train-test-split}
+
+set.seed(1234)
+
+sample.data <- sample_frac(data.mod, 1)
+
+# sample.data <- downSample(sample.data, sample.data$top.10, list = FALSE)
+# sample.data$Class <- NULL
+
+# head(sample.data)
+
+split.perc = .70
+
+train.indices = sample(1:dim(sample.data)[1],round(split.perc * dim(sample.data)[1]))
+
+train = sample.data[train.indices,]
+test = sample.data[-train.indices,]
+
+train <- downSample(train, train$top.10, list = FALSE)
+train$Class <- NULL
+
+set.seed(1234)
+model.rf.train <- randomForest(top.10 ~ ., data = train, ntree = 275, mtry = 8, cutoff = c(0.4,1-0.4))
+
+?randomForest
+
+print(model.rf.train)
+
+
+p1 <- predict(model.rf.train, train)
+p2 <- predict(model.rf.train, test)
+
+head(p1)
+plot(model.rf.train) 
+varImp(model.rf.train)
+
+
+```
+
+
+
+## Random Forest Performance
+
+### Train
+```{r rf-performance-train}
+
+confusionMatrix(data=p1,  
+                reference=train$top.10, "Yes")
+
+```
+
+### Test
+```{r rf-performance-test}
+
+
+confusionMatrix(data=p2,  
+                reference=test$top.10, "Yes")
+
+
+
+
+```
+
+
+
+
+### Area Under the Curve
+
+```{r rf-auc-plot-test}
+
+# ?pROC
+
+auc <- roc(as.integer(test$top.10), as.integer(p2))
+# print(auc)
+
+# plot(auc, ylim=c(0,1), print.thres=TRUE, main=paste('AUC of Test Set:', round(auc$auc[[1]],2)))
+# abline(h=1,col='green',lwd=2)
+# abline(h=0,col='red',lwd=2)
+
+g <- ggroc(auc, alpha = 0.5, colour = "red", linetype = 2, size = 2) +
+  theme_minimal() + 
+  ggtitle(paste('AUC of Test Set:', round(auc$auc[[1]],2))) + 
+  geom_segment(aes(x = 0, xend = 1, y = 0, yend = 1), color="darkgrey", linetype="dashed")
+  
+
+plot(g)
+
+
+plotRoc <- function(preds, truth) {
+  pred <- prediction(preds, truth)
+  roc.perf = performance(pred, measure = "tpr", x.measure = "fpr")
+  auc.train <- performance(pred, measure = "auc")
+  auc.train <- auc.train@y.values
+  
+  #Plot ROC
+  par(mar=c(4,4,4,4))
+  plot(roc.perf,main="Random Forest")
+  abline(a=0, b= 1) #Ref line indicating poor performance
+  text(x = .40, y = .6,paste("AUC = ", round(auc.train[[1]],3), sep = ""))
+  table(test$top.10, useNA = "ifany")
+}
+
+
+plotRoc(as.integer(p2),as.integer(test$top.10))
+
+
+```
+
+```{r pre-train-test-split}
+
+set.seed(1234)
+train <- read.csv("../../../data/pubg_solo_game_types_train_downsampled.csv", stringsAsFactors=FALSE)
+
+test <- read.csv("../../../data/pubg_solo_game_types_test_full.csv", stringsAsFactors=FALSE)
+
+
+train <- train %>%
+  select(-cols_to_remove) %>%
+  mutate(kills  = kills * 100 / numGroups) %>% # Normalized Kills
+  mutate(matchDuration = as.factor(ifelse(matchDuration < mean(matchDuration), "Low", "High"))) %>%
+  mutate(top.10 = factor(top.10, labels = c("No", "Yes"))) 
+
+
+test <- test %>%
+  select(-cols_to_remove) %>%
+  mutate(kills  = kills * 100 / numGroups) %>% # Normalized Kills
+  mutate(matchDuration = as.factor(ifelse(matchDuration < mean(matchDuration), "Low", "High"))) %>%
+  mutate(top.10 = factor(top.10, labels = c("No", "Yes"))) 
+
+
+model.rf.train <- randomForest(as.factor(top.10) ~ ., 
+                               data = train, 
+                               ntree = 500, 
+                               mtry = 12, 
+                               cutoff = c(0.4,1-0.40))
+
+print(model.rf.train)
+
+
+p1 <- predict(model.rf.train, train)
+p2 <- predict(model.rf.train, test)
+
+
+print(model.rf.train)
+plot(model.rf.train)
+varImp(model.rf.train)
+
+
+confusionMatrix(data=p1,
+                reference=train$top.10, "Yes")
+
+
+confusionMatrix(data=p2,
+                reference=test$top.10, "Yes")
+
+
+
+plotRoc <- function(preds, truth) {
+  pred <- prediction(preds, truth)
+  roc.perf = performance(pred, measure = "tpr", x.measure = "fpr")
+  auc.train <- performance(pred, measure = "auc")
+  auc.train <- auc.train@y.values
+  #Plot ROC
+  par(mar=c(4,4,4,4))
+  plot(roc.perf,main="Random Forest")
+  abline(a=0, b= 1) #Ref line indicating poor performance
+  text(x = .40, y = .6,paste("AUC = ", round(auc.train[[1]],3), sep = ""))
+  table(test$top.10, useNA = "ifany")
+}
+
+
+
+plotRoc(as.integer(p2),as.integer(test$top.10))
+```
+
+
+```{r rf-train-control}
+#Create control function for training with 10 folds and keep 3 folds for training. search method is grid.
+# control <- trainControl(method='repeatedcv', 
+#                         number=10, 
+#                         repeats=3, 
+#                         search='grid')
+# #create tunegrid with 15 values from 1:15 for mtry to tunning model. Our train function will change number of entry variable at each split according to tunegrid. 
+# tunegrid <- expand.grid(.mtry = (2:16)) 
+# 
+# # ?train
+# 
+# rf_gridsearch <- train(top.10 ~ ., 
+#                        data = train,
+#                        method = 'rf',
+#                        metric = 'Accuracy',
+#                        tuneGrid = tunegrid)
+# print(rf_gridsearch)
+
+```
+
+
+```{r rf-test-control}
+#Create control function for training with 10 folds and keep 3 folds for training. search method is grid.
+# control <- trainControl(method='repeatedcv', 
+#                         number=10, 
+#                         repeats=3, 
+#                         search='grid')
+# #create tunegrid with 15 values from 1:15 for mtry to tunning model. Our train function will change number of entry variable at each split according to tunegrid. 
+# tunegrid <- expand.grid(.mtry = (2:16)) 
+# 
+# # ?train
+# 
+# rf_gridsearch <- train(top.10 ~ ., 
+#                        data = test,
+#                        method = 'rf',
+#                        metric = 'Accuracy',
+#                        tuneGrid = tunegrid)
+# print(rf_gridsearch)
+
+```
+
+```{r rf-tune-train}
+# head(test)
+# obj <- tuneRF(train[,-23], train[,23],
+#        mtryStart = 8,
+#        stepFactor = 1.5,
+#        ntreeTry = 500,
+#        trace = TRUE,
+#        improve = 0.5,
+#        doBest=TRUE
+# )
+# 
+# obj
+
+```
+
+```{r rf-tune-test}
+
+# head(test)
+# obj <- tuneRF(test[,-23], test[,23],
+#        mtryStart = 8,
+#        stepFactor = 1.5,
+#        ntreeTry = 500,
+#        trace = TRUE,
+#        improve = 0.5,
+#        doBest=TRUE
+# )
+# 
+# obj
+
+```

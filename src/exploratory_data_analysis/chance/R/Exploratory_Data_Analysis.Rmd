@@ -1,0 +1,443 @@
+---
+title: "Exploratory Data Analysis"
+author: "Chance Robinson"
+date: "11/2/2019"
+output: 
+  github_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Exploratory Data Analysis
+
+## Library Imports
+
+
+```{r library-imports, quietely=TRUE, warn.conflicts=FALSE}
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+# Correlation Matrix
+library(ggcorrplot)
+library(Hmisc)
+# Downsampling
+library(caret)
+```
+
+## Load the CSV Data
+
+```{r load-data}
+train <- read.csv("../../../../data/train_V2.csv", stringsAsFactors=FALSE)
+test <- read.csv("../../../../data/test_V2.csv", stringsAsFactors=FALSE)
+
+```
+
+
+
+```{r train-test-split}
+
+train.mod <- train
+
+train.mod <- train.mod %>%
+  filter(matchType %in% c("solo")) %>%
+  mutate(top.10 = ifelse(winPlacePerc>.9, 1, 0)) %>%
+  mutate(top.10 = as.factor(top.10))
+
+
+set.seed(1234)
+train.indices <- createDataPartition(y = train.mod$top.10,p = 0.7,list = FALSE)
+train.full <- train.mod[train.indices,]
+test.full <- train.mod[-train.indices,]
+
+
+train.downsampled <- downSample(train.full, train.full$top.10)
+train.downsampled$Class <- NULL
+
+head(train.downsampled)
+
+dim(train.mod)
+dim(train.full)
+dim(test.full)
+dim(train.downsampled)
+
+# write.csv(train.mod, "C:\\Users\\Chance\\pubg_solo_game_types.csv", row.names=FALSE)
+# write.csv(train.full, "C:\\Users\\Chance\\pubg_solo_game_types_train_full.csv", row.names=FALSE)
+# write.csv(train.downsampled, "C:\\Users\\Chance\\pubg_solo_game_types_train_downsampled.csv", row.names=FALSE)
+# write.csv(test.full, "C:\\Users\\Chance\\pubg_solo_game_types_test_full.csv", row.names=FALSE)
+
+
+```
+
+## Default Output
+
+
+### Data Dictionary
+
+  Column Name      |Type                  |Description
+  -----------------|----------------------|-------------------------------------------------
+  DBNOs            |Integer               |Number of enemy players knocked.
+  assists          |Integer 		          |Number of enemy players this player damaged that were killed by teammates.
+  boosts           |Integer               |Number of boost items used.
+  damageDealt      |Float 			          |Total damage dealt. Note: Self inflicted damage is subtracted.
+  headshotKills    |Integer               |Number of enemy players killed with headshots.
+  heals            |Integer               |Number of healing items used.
+  Id               |Character             |Player’s Id
+  killPlace        |Integer               |Ranking in match of number of enemy players killed.
+  killPoints       |Integer               |Kills-based external ranking of player.
+  killStreaks      |Integer               |Max number of enemy players killed in a short amount of time.
+  kills            |Integer               |Number of enemy players killed.
+  longestKill      |Float 			          |Longest distance between player and player killed at time of death. 
+  matchDuration    |Integer               |Duration of match in seconds.
+  matchId          |Character             |ID to identify match. There are no matches that are in both the training and testing set.
+  matchType        |Character             |String identifying the game mode that the data comes from. 
+  rankPoints       |Integer               |Elo-like ranking of player. 
+  revives          |Integer               |Number of times this player revived teammates.
+  rideDistance     |Float                 |Total distance traveled in vehicles measured in meters.
+  roadKills        |Integer               |Number of kills while in a vehicle.
+  swimDistance     |Float                 |Total distance traveled by swimming measured in meters.
+  teamKills        |Integer               |Number of times this player killed a teammate.
+  vehicleDestroys  |Integer               |Number of vehicles destroyed.
+  walkDistance     |Float                 |Total distance traveled on foot measured in meters.
+  weaponsAcquired  |Integer               |Number of weapons picked up.
+  winPoints        |Integer               |Win-based external ranking of player. 
+  groupId          |Character             |ID to identify a group within a match. If the same group of players plays in different matches, they will have a different groupId each time.
+  numGroups        |Integer               |Number of groups we have data for in the match.
+  maxPlace         |Integer               |Worst placement we have data for in the match. This may not match with numGroups, as sometimes the data skips over placements.
+  winPlacePerc     |Float                 |The target of prediction. This is a percentile winning placement, where 1 corresponds to 1st place, and 0 corresponds to last place in the match. 
+
+
+
+### Identify Dimensions
+ 
+```{r train-dimensions}
+dim(train)
+```
+
+
+### Train Columns
+
+```{r train-columns}
+colnames(train)
+```
+
+
+```{r head-train}
+head(train)
+# summary(train)
+# str(train)
+# dim(train)
+```
+
+
+
+```{r head-test}
+head(test)
+# summary(test)
+# str(test)
+# dim(test)
+```
+
+
+### Describe the Data Types
+
+
+```{r train-describe}
+str(train)
+```
+
+
+#### Missing Values
+
+```{r train-missing}
+df_na_winPlacePerc <- train %>%
+  filter(is.na(winPlacePerc)) 
+
+df_na_winPlacePerc
+
+# remove the row with no winPlacePerc   
+train <- train[!train$Id == 'f70c74418bb064',]
+
+```
+
+
+### Numeric Columns
+
+
+#### Column Names
+
+```{r train-numeric}
+
+
+train.numeric <- train %>%
+  select_if(is.numeric)
+
+colnames(train.numeric)
+
+```
+
+#### Summary Tables
+
+```{r train-numeric-summary}
+
+summary(train.numeric)
+
+```
+
+
+
+
+
+### Non-Numeric Columns
+
+#### Column Names
+
+```{r train-non-numeric}
+
+
+train.non.numeric <- train %>%
+  select_if(is.character)
+
+colnames(train.non.numeric)
+
+```
+
+
+#### Count by Match Type
+
+* FPP - First Person Perspective
+* TPP - Third Peron Perspective
+
+```{r}
+train.non.numeric %>%
+  group_by(matchType) %>%
+  ggplot(aes(x = matchType, color=matchType)) + 
+  geom_bar() +
+  geom_text(stat='count', aes(label=..count..), vjust=-1) +
+  ggtitle("Count by Match Type") +
+  labs(x = "Match Type", y = "Count") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.position = "none")
+```
+
+
+
+## Correlation Matrix
+
+
+```{r train-numeric-cor-matrix}
+
+# gc()
+
+# memory.size(max = FALSE)
+# memory.limit(size = NA)
+
+corr <- round(cor(train.numeric), 1)
+  
+ggcorrplot(corr, method = "square", type = "full", lab = TRUE)
+
+```
+
+
+###Correlation matrix for quantitative data
+
+```{r corr-matrix}
+# function for flattening and ordering the correlation matrix
+flattenCorrMatrix <- function(cormat, pmat) {
+  ut <- upper.tri(cormat)
+  data.frame(
+    row = rownames(cormat)[row(cormat)[ut]],
+    column = rownames(cormat)[col(cormat)[ut]],
+    cor  =(cormat)[ut],
+    p = pmat[ut]
+    )
+}
+
+
+# See what variables are correlated with each other, p-values
+correlation.matrix <- rcorr(as.matrix(train.numeric))
+corDF <- data.frame(flattenCorrMatrix(correlation.matrix$r, correlation.matrix$P))
+
+# Order the correlation matrix to show the highest correlated
+# data.frame(corDF[order(-corDF$cor),])
+quantDataModel <- corDF[which(corDF$cor >= 0.4),]
+data.frame(quantDataModel[order(-quantDataModel$cor),])
+
+```
+
+
+
+```{r train.mod.ds-logistic.regression-model}
+
+
+train.downsampled <- train.downsampled %>%
+  mutate(top.10 = factor(top.10, labels = c("No", "Yes")))
+
+head(train.downsampled)
+dim(train.downsampled)
+
+table(train.downsampled$top.10)
+
+summary(train.downsampled)
+
+model <- glm(top.10 ~ walkDistance+killPlace+boosts+weaponsAcquired+damageDealt+heals+kills, data = train.downsampled, family = binomial("logit"))
+summary(model)
+# confint(model) 
+```
+
+
+```{r train-confusion-matrix}
+
+train.downsampled$predict <- as.factor(ifelse(model$fitted.values >0.5, "Yes", "No"))
+
+
+mytable <- table(train.downsampled$top.10, train.downsampled$predict)
+rownames(mytable) <- c("Obs (Bottom 90)", "Obs (Top 10)")
+colnames(mytable) <- c("Pred (Bottom 90)", "Pred (Top 10)")
+mytable
+
+```
+
+#### Accuracy
+```{r model-accuracy}
+# Overall performance of our prediction model
+accuracy <- sum(diag(mytable))/sum(mytable)
+accuracy
+
+
+tn <- mytable[1,1]
+fn <- mytable[2,1]
+fp <- mytable[1,2]
+tp <- mytable[2,2]
+
+rtotal.0 <- sum(mytable[1,])
+rtotal.1 <- sum(mytable[2,])
+ctotal.0 <- sum(mytable[,1])
+ctotal.1 <- sum(mytable[,2])
+total <- sum(mytable)
+
+
+tn
+fn
+fp
+tp
+
+```
+
+#### Sensitivity
+
+* When it was in the top 10%, how often did we predict that it was?
+
+```{r model-sensitivity}
+# True Positive Rate
+sensitivity <- (tp) / (ctotal.1)
+sensitivity
+
+```
+
+#### Specificity
+
+* When it was in the bottom 90%, how often did we predict that it was?
+
+```{r model-specificity}
+# True Negative Rate:
+specificity <- (tn) / (rtotal.0)
+specificity
+
+```
+
+#### Precision
+
+* When we predicted yes, how often is it correct?
+
+```{r model-precision}
+# True Negative Rate:
+precision <- (tp) / (ctotal.1)
+precision
+
+```
+
+
+
+```{r train-numeric-pca}
+
+
+cols.to.remove <- c("DBNOs", "revives")
+
+train.mod.numeric <- train.mod %>%
+  filter(matchType %in% c("solo", "solo-fpp")) %>%
+  select_if(is.numeric) %>%
+  select(-cols.to.remove) %>%
+  mutate(top.10 = ifelse(winPlacePerc>.9, 1, 0)) %>%
+  mutate(matchDurationLength = ifelse(matchDuration >= mean(matchDuration), 1, 0))
+
+
+head(train.mod.numeric)
+
+# table(train.mod.numeric$revives)
+
+
+pca.result <- prcomp(train.mod.numeric[1:22], scale.=TRUE)
+# pca.result <- prcomp(train.mod.numeric[1:24])
+pca.scores <- pca.result$x
+
+head(pca.scores)
+# pairs(pca.scores)
+# cor(pca.scores)
+```
+
+
+A scree plot of the eigenvalues used to determine how many pc's to keep can be plotted in the following way:
+```{r}
+par(mfrow=c(1,2))
+eigenvals <- (pca.result$sdev)^2
+plot(1:22,eigenvals/sum(eigenvals), type="l", main="Scree Plot", ylab="Prop. Var. Explained")
+cumulative.prop <- cumsum(eigenvals/sum(eigenvals))
+plot(1:22,cumulative.prop, type="l", main="Cumulative proportion", ylim=c(0,1))
+par(mfrow=c(1,1))
+
+```
+
+
+```{r}
+#Getting a look at the distribution
+table(train.mod.numeric$top.10)
+
+#Adding the response column to the PC's data frame
+pca.scores <- data.frame(pca.scores)
+pca.scores$top.10 <- as.factor(train.mod.numeric$top.10)
+pca.scores$matchDurationLength <- as.factor(train.mod.numeric$matchDurationLength)
+
+table(train.mod.numeric$matchDurationLength)
+
+# ggplot(data = pca.scores, aes(x = PC1, y = PC2)) +
+#   geom_point(aes(col=top.10), size=1)+
+#   ggtitle("PCA of PUBG Top 10%")
+
+
+```
+
+
+
+```{r}
+
+# , shape = matchDurationLength
+
+plotPC <- function(mydata) {
+  sampleData <- sample_frac(mydata, 0.10)
+  ggplot(data = sampleData, aes(x = PC1, y = PC2)) +
+    geom_point(aes(col=top.10), size=1)+
+    ggtitle("PCA of PUBG Top 10% Placement")
+}
+
+set.seed(314159)
+plotPC(pca.scores)
+
+
+```
+
+
+
+
