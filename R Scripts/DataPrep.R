@@ -6,8 +6,8 @@ trainDownSampled <- read_csv("data/pubg_solo_game_types_train_downsampled.csv") 
 test <- read_csv("data/pubg_solo_game_types_test_full.csv") %>% select(-c("DBNOs","revives"))
 
 solo$top.10 <- as.factor(solo$top.10)
-test$top.10 <- as.factor(solo$top.10)
-trainDownSampled$top.10 <- as.factor(solo$top.10)
+test$top.10 <- as.factor(test$top.10)
+trainDownSampled$top.10 <- as.factor(trainDownSampled$top.10)
 
 solo <- solo %>% mutate(
 DurationCut = as.factor(ifelse(matchDuration > 1600,1,0)),
