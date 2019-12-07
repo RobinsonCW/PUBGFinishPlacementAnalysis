@@ -4,6 +4,10 @@ library(GGally)
 
 
 
+setwd("C:/Users/William/OneDrive/MSDS_6372_AppliedStatistics/project2/PUBGFinishPlacementAnalysis")
+
+## Import the data. Downsampled training data and test data.
+source("src/Will/scripts/DataPrep.R")
 
 ## Correlation plot
 varsToDrop <- c("Id","matchId","matchType","rankPoints","groupId")
@@ -40,7 +44,6 @@ ggplot(solo,aes(x=top.10, y=winPoints, fill=top.10)) + geom_boxplot()
 ggplot(solo %>% filter(killPoints == 0),aes(x=top.10, y=killPoints, fill=top.10)) + geom_boxplot()
 ggplot(solo %>% filter(winPoints > 0),aes(x=top.10, y=winPoints, fill=top.10)) + geom_boxplot()
 ggplot(solo,aes(x=top.10, y=killStreaks, fill=top.10)) + geom_boxplot()
-ggplot(solo,aes(x=top.10, y=DBNOs, fill=top.10)) + geom_boxplot()
 ggplot(solo,aes(x=top.10, y=weaponsAcquired, fill=top.10)) + geom_boxplot()
 ggplot(solo,aes(x=top.10, y=vehicleDestroys, fill=top.10)) + geom_boxplot()
 
@@ -63,7 +66,7 @@ pairsData <- sample %>% keep(is.numeric)
 pairsData$top.10 <- sample$top.10
 
 ggpairs(data = pairsData, mapping = aes(color = top.10),
-        columns = c("assists" , "boosts" , "heals" , "weaponsAcquired" , "kills" , "walkDistance","top.10"))
+        columns = c("assists" , "boosts" , "heals" , "weaponsAcquired" , "killPlace" , "walkDistance","top.10"))
 ggpairs(data = pairsData, mapping = aes(color = top.10),
         columns = c(varGroupPoints,"top.10"))
 ggpairs(data = pairsData, mapping = aes(color = top.10),

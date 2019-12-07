@@ -1,4 +1,4 @@
-model.01 <- glm(top.10~boostCut + weaponCut + killCut + walkCut + damageCut + boostCut:killCut,
+model.01 <- glm(top.10~boosts + assists + weaponsAcquired + kills + walkDistance + boostCut*damageDealt,
                   data= train, family = binomial(link="logit"))
 summary(model.01)
 m01.pred <- predict(model.01, newdata = test, type = "response")

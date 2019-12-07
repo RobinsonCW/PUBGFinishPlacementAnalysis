@@ -1,7 +1,14 @@
 library(formattable)
 library(dlookr)
+
+setwd("C:/Users/William/OneDrive/MSDS_6372_AppliedStatistics/project2/PUBGFinishPlacementAnalysis")
+
+## Import the data. Downsampled training data and test data.
+source("src/Will/scripts/DataPrep.R")
 formattable(describe(solo))
 
+solo$test1 <- solo$winPoints+solo$rankPoints
+solo$test2 <- solo$winPoints*solo$rankPoints
 ## good for quick bivariate tables
 categ <- target_by(solo, top.10)
 columnsWant <- c("n","mean","sd","p00","p05","p10","p25","p50","p75", "p95", "p99","p100")
@@ -31,13 +38,21 @@ relate(categ, rideDistance) %>% select(columnsWant)
 relate(categ, swimDistance) %>% select(columnsWant)
 relate(categ, walkDistance) %>% select(columnsWant)
 
-##
+## Team
 relate(categ, heals) %>% select(columnsWant)
 relate(categ, boosts) %>% select(columnsWant)
 relate(categ, assists) %>% select(columnsWant)
+relate(categ, teamKills) %>% select(columnsWant)
+
+## Points "killPoints","winPoints","rankPoints","winPlacePerc","matchDuration"
+relate(categ, killPoints) %>% select(columnsWant)
+relate(categ, winPoints) %>% select(columnsWant)
+relate(categ, rankPoints) %>% select(columnsWant)
+relate(categ, winPlacePerc) %>% select(columnsWant)
+relate(categ, matchDuration) %>% select(columnsWant)
 
 relate(categ, killsPK) %>% select(columnsWant) #kills per kilometer
-relate(categ, damageKill) %>% select(columnsWant)
+relate(categ, damageKill) %>% select(columnsWant) #damage per kill
 ## RankPoints
 summary(solo %>% filter(rankPoints > 0) %>% select(rankPoints))
 rpTest <- solo %>% filter(rankPoints > 0)
@@ -52,8 +67,7 @@ relate(categwp, winPoints) %>% select(columnsWant)
 
 
 ## Can we combine? Seems no, when winpoints >0, rankpoints = -1
-solo$test1 <- solo$winPoints+solo$rankPoints
-solo$test2 <- solo$winPoints*solo$rankPoints
+
 relate(categ, test1) %>% select(columnsWant)
 relate(categ, test2) %>% select(columnsWant)
 
