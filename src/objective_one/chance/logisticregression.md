@@ -25,14 +25,14 @@ Chance Robinson
 library(tidyverse)
 ```
 
-    ## -- Attaching packages ---------------------------------------------------------------------------------- tidyverse 1.2.1 --
+    ## -- Attaching packages -------------------------------------------------------------------------------------------------------- tidyverse 1.2.1 --
 
     ## v ggplot2 3.2.1     v purrr   0.3.3
     ## v tibble  2.1.3     v dplyr   0.8.3
     ## v tidyr   1.0.0     v stringr 1.4.0
     ## v readr   1.3.1     v forcats 0.4.0
 
-    ## -- Conflicts ------------------------------------------------------------------------------------- tidyverse_conflicts() --
+    ## -- Conflicts ----------------------------------------------------------------------------------------------------------- tidyverse_conflicts() --
     ## x dplyr::filter() masks stats::filter()
     ## x dplyr::lag()    masks stats::lag()
 
@@ -108,27 +108,43 @@ data <- data[!data$Id == 'f70c74418bb064',]
 ## Specify Model Columns of Interest
 
 ``` r
-cols_to_keep = c("walkDistance", "killPlace", "boosts", "weaponsAcquired", "damageDealt", "heals", "kills", "top.10")
+cols_to_keep = c("walkDistance", "killPlace", "boosts", "weaponsAcquired", "kills", "numGroups", "matchDuration", 
+                 "rideDistance", "longestKill", "killStreaks", "assists", 
+                 "top.10")
 
 cols_to_remove = c("Id", "groupId", "matchId", "matchType", "DBNOs", "winPlacePerc")
 
 head(data[cols_to_keep])
 ```
 
-    ##   walkDistance killPlace boosts weaponsAcquired damageDealt heals kills top.10
-    ## 1       1528.0        24      1               3      100.00     0     1      0
-    ## 2        471.9        79      0               3       17.81     0     0      0
-    ## 3        231.7        38      1               4      100.00     0     1      0
-    ## 4        292.6        84      0               1       36.00     0     0      0
-    ## 5       1913.0         7      1               8      236.00     7     3      1
-    ## 6        870.9        65      0               3        0.00     0     0      0
+    ##   walkDistance killPlace boosts weaponsAcquired kills numGroups matchDuration
+    ## 1       1528.0        24      1               3     1        89          1398
+    ## 2        471.9        79      0               3     0        95          1945
+    ## 3        231.7        38      1               4     1        86          2042
+    ## 4        292.6        84      0               1     0        92          1999
+    ## 5       1913.0         7      1               8     3        88          1423
+    ## 6        870.9        65      0               3     0        94          1471
+    ##   rideDistance longestKill killStreaks assists top.10
+    ## 1          0.0      21.250           1       0      0
+    ## 2        129.3       0.000           0       0      0
+    ## 3          0.0       7.667           1       0      0
+    ## 4          0.0       0.000           0       0      0
+    ## 5          0.0      11.720           1       0      1
+    ## 6          0.0       0.000           0       0      0
 
 ## Prepare Dataframe
 
 ``` r
 data.mod <- data %>%
   select(cols_to_keep) %>%
-  mutate(top.10 = factor(top.10, labels = c("No", "Yes")))
+  mutate(kills= kills * 100 / numGroups) %>% # Normalized Kills
+  # mutate(matchDurationLength = as.factor(ifelse(matchDuration < mean(matchDuration), "Low", "High"))) %>%
+  mutate(top.10 = factor(top.10, labels = c("No", "Yes"))) 
+  #mutate(damageDealt = ifelse(damageDealt > 0, log(damageDealt), damageDealt)) %>%
+  # mutate(longestKill = ifelse(longestKill > 0, log(longestKill), longestKill)) %>%
+  # mutate(killPlace= killPlace * 100 / numGroups) # Normalized Kills
+
+
 
 
 summary(data.mod)
@@ -141,13 +157,20 @@ summary(data.mod)
     ##  Mean   :  986.2   Mean   : 46.17   Mean   : 1.066   Mean   : 3.757  
     ##  3rd Qu.: 1616.0   3rd Qu.: 70.00   3rd Qu.: 2.000   3rd Qu.: 5.000  
     ##  Max.   :15370.0   Max.   :100.00   Max.   :24.000   Max.   :52.000  
-    ##   damageDealt          heals            kills         top.10      
-    ##  Min.   :   0.00   Min.   : 0.000   Min.   : 0.0000   No :162933  
-    ##  1st Qu.:   0.00   1st Qu.: 0.000   1st Qu.: 0.0000   Yes: 19010  
-    ##  Median :  65.73   Median : 0.000   Median : 0.0000               
-    ##  Mean   : 112.62   Mean   : 1.012   Mean   : 0.8709               
-    ##  3rd Qu.: 159.60   3rd Qu.: 1.000   3rd Qu.: 1.0000               
-    ##  Max.   :2490.00   Max.   :49.000   Max.   :21.0000
+    ##      kills            numGroups     matchDuration   rideDistance     
+    ##  Min.   :  0.0000   Min.   : 1.00   Min.   : 950   Min.   :    0.00  
+    ##  1st Qu.:  0.0000   1st Qu.:89.00   1st Qu.:1431   1st Qu.:    0.00  
+    ##  Median :  0.0000   Median :92.00   Median :1771   Median :    0.00  
+    ##  Mean   :  0.9649   Mean   :87.29   Mean   :1676   Mean   :  640.98  
+    ##  3rd Qu.:  1.1236   3rd Qu.:94.00   3rd Qu.:1903   3rd Qu.:    1.16  
+    ##  Max.   :100.0000   Max.   :99.00   Max.   :2237   Max.   :33970.00  
+    ##   longestKill       killStreaks         assists        top.10      
+    ##  Min.   :   0.00   Min.   : 0.0000   Min.   :0.00000   No :162933  
+    ##  1st Qu.:   0.00   1st Qu.: 0.0000   1st Qu.:0.00000   Yes: 19010  
+    ##  Median :   0.00   Median : 0.0000   Median :0.00000               
+    ##  Mean   :  20.70   Mean   : 0.4429   Mean   :0.05562               
+    ##  3rd Qu.:  15.91   3rd Qu.: 1.0000   3rd Qu.:0.00000               
+    ##  Max.   :1001.00   Max.   :18.0000   Max.   :4.00000
 
 ``` r
 # str(data.mod)
@@ -191,32 +214,39 @@ train$predict <- as.factor(ifelse(model$fitted.values >0.55, "Yes", "No"))
 head(train)
 ```
 
-    ##   walkDistance killPlace boosts weaponsAcquired damageDealt heals kills top.10
-    ## 1       444.20        74      0               6        0.00     0     0     No
-    ## 2        60.38        45      0               2      100.00     0     1     No
-    ## 3      2080.00        22      5              10      159.00     0     1     No
-    ## 4       706.30        59      0               8        0.00     0     0     No
-    ## 5       427.80        71      1               2       91.14     1     0     No
-    ## 6        11.97        89      0               2        0.00     0     0     No
-    ##   predict
-    ## 1      No
-    ## 2      No
-    ## 3     Yes
-    ## 4      No
-    ## 5      No
-    ## 6      No
+    ##   walkDistance killPlace boosts weaponsAcquired    kills numGroups
+    ## 1       444.20        74      0               6 0.000000        92
+    ## 2        60.38        45      0               2 1.063830        94
+    ## 3      2080.00        22      5              10 1.351351        74
+    ## 4       706.30        59      0               8 0.000000        96
+    ## 5       427.80        71      1               2 0.000000        92
+    ## 6        11.97        89      0               2 0.000000        94
+    ##   matchDuration rideDistance longestKill killStreaks assists top.10 predict
+    ## 1          1915          0.0       0.000           0       0     No      No
+    ## 2          1394          0.0       7.848           1       0     No      No
+    ## 3          1384          0.0      21.560           1       1     No     Yes
+    ## 4          1891        921.5       0.000           0       0     No      No
+    ## 5          1371          0.0       0.000           0       0     No      No
+    ## 6          1501          0.0       0.000           0       0     No      No
 
 ``` r
 head(test)
 ```
 
-    ##    walkDistance killPlace boosts weaponsAcquired damageDealt heals kills top.10
-    ## 4         292.6        84      0               1       36.00     0     0     No
-    ## 5        1913.0         7      1               8      236.00     7     3    Yes
-    ## 10       2534.0        21      2               4      158.00     6     1     No
-    ## 15       1135.0        53      2               2       29.06     3     0     No
-    ## 16        622.4        37      0               3      129.70     0     1     No
-    ## 18       1726.0        46      0               3       47.73     0     0     No
+    ##    walkDistance killPlace boosts weaponsAcquired    kills numGroups
+    ## 4         292.6        84      0               1 0.000000        92
+    ## 5        1913.0         7      1               8 3.409091        88
+    ## 10       2534.0        21      2               4 1.265823        79
+    ## 15       1135.0        53      2               2 0.000000        93
+    ## 16        622.4        37      0               3 1.052632        95
+    ## 18       1726.0        46      0               3 0.000000        97
+    ##    matchDuration rideDistance longestKill killStreaks assists top.10
+    ## 4           1999            0       0.000           0       0     No
+    ## 5           1423            0      11.720           1       0    Yes
+    ## 10          1462            0      13.820           1       0     No
+    ## 15          1381         1093       0.000           0       0     No
+    ## 16          1882            0       7.607           1       0     No
+    ## 18          1440            0       0.000           0       0     No
 
 ## Logistic Regression Performance
 
@@ -232,28 +262,32 @@ summary(model)
     ## 
     ## Deviance Residuals: 
     ##     Min       1Q   Median       3Q      Max  
-    ## -3.8865  -0.3346  -0.0086   0.4988   2.6907  
+    ## -3.7316  -0.2445   0.0063   0.4485   6.8295  
     ## 
     ## Coefficients:
     ##                   Estimate Std. Error z value Pr(>|z|)    
-    ## (Intercept)     -1.814e-01  6.986e-02  -2.597  0.00942 ** 
-    ## walkDistance     8.171e-04  2.181e-05  37.461  < 2e-16 ***
-    ## killPlace       -7.598e-02  1.555e-03 -48.853  < 2e-16 ***
-    ## boosts           3.814e-01  1.219e-02  31.290  < 2e-16 ***
-    ## weaponsAcquired  7.734e-02  7.897e-03   9.794  < 2e-16 ***
-    ## damageDealt      1.444e-03  2.544e-04   5.675 1.39e-08 ***
-    ## heals           -3.031e-02  6.555e-03  -4.625 3.75e-06 ***
-    ## kills           -3.666e-01  2.626e-02 -13.960  < 2e-16 ***
+    ## (Intercept)      3.604e+00  1.875e-01  19.219  < 2e-16 ***
+    ## walkDistance     8.721e-04  2.567e-05  33.976  < 2e-16 ***
+    ## killPlace       -1.195e-01  2.608e-03 -45.814  < 2e-16 ***
+    ## boosts           2.969e-01  1.208e-02  24.577  < 2e-16 ***
+    ## weaponsAcquired  7.748e-02  8.333e-03   9.298  < 2e-16 ***
+    ## kills           -8.100e-02  1.460e-02  -5.549 2.88e-08 ***
+    ## numGroups        1.630e-02  1.430e-03  11.399  < 2e-16 ***
+    ## matchDuration   -1.882e-03  9.854e-05 -19.093  < 2e-16 ***
+    ## rideDistance     2.024e-04  1.125e-05  17.994  < 2e-16 ***
+    ## longestKill     -1.701e-03  3.959e-04  -4.297 1.73e-05 ***
+    ## killStreaks     -1.964e+00  7.068e-02 -27.793  < 2e-16 ***
+    ## assists          6.719e-01  6.905e-02   9.731  < 2e-16 ***
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## 
     ## (Dispersion parameter for binomial family taken to be 1)
     ## 
     ##     Null deviance: 36975  on 26671  degrees of freedom
-    ## Residual deviance: 17111  on 26664  degrees of freedom
-    ## AIC: 17127
+    ## Residual deviance: 15589  on 26660  degrees of freedom
+    ## AIC: 15613
     ## 
-    ## Number of Fisher Scoring iterations: 6
+    ## Number of Fisher Scoring iterations: 7
 
 ``` r
 # confint(model) 
@@ -268,28 +302,28 @@ confusionMatrix(data=train$predict,
     ## 
     ##           Reference
     ## Prediction    No   Yes
-    ##        No  11406  1851
-    ##        Yes  1930 11485
-    ##                                          
-    ##                Accuracy : 0.8582         
-    ##                  95% CI : (0.854, 0.8624)
-    ##     No Information Rate : 0.5            
-    ##     P-Value [Acc > NIR] : <2e-16         
-    ##                                          
-    ##                   Kappa : 0.7165         
-    ##                                          
-    ##  Mcnemar's Test P-Value : 0.2046         
-    ##                                          
-    ##             Sensitivity : 0.8612         
-    ##             Specificity : 0.8553         
-    ##          Pos Pred Value : 0.8561         
-    ##          Neg Pred Value : 0.8604         
-    ##              Prevalence : 0.5000         
-    ##          Detection Rate : 0.4306         
-    ##    Detection Prevalence : 0.5030         
-    ##       Balanced Accuracy : 0.8582         
-    ##                                          
-    ##        'Positive' Class : Yes            
+    ##        No  11559  1643
+    ##        Yes  1777 11693
+    ##                                           
+    ##                Accuracy : 0.8718          
+    ##                  95% CI : (0.8677, 0.8758)
+    ##     No Information Rate : 0.5             
+    ##     P-Value [Acc > NIR] : < 2e-16         
+    ##                                           
+    ##                   Kappa : 0.7436          
+    ##                                           
+    ##  Mcnemar's Test P-Value : 0.02295         
+    ##                                           
+    ##             Sensitivity : 0.8768          
+    ##             Specificity : 0.8668          
+    ##          Pos Pred Value : 0.8681          
+    ##          Neg Pred Value : 0.8755          
+    ##              Prevalence : 0.5000          
+    ##          Detection Rate : 0.4384          
+    ##    Detection Prevalence : 0.5050          
+    ##       Balanced Accuracy : 0.8718          
+    ##                                           
+    ##        'Positive' Class : Yes             
     ## 
 
 ### Test
@@ -309,26 +343,26 @@ confusionMatrix(data=test$predict,
     ## 
     ##           Reference
     ## Prediction    No   Yes
-    ##        No  41861   829
-    ##        Yes  7048  4845
+    ##        No  42353   727
+    ##        Yes  6556  4947
     ##                                           
-    ##                Accuracy : 0.8557          
-    ##                  95% CI : (0.8527, 0.8586)
+    ##                Accuracy : 0.8666          
+    ##                  95% CI : (0.8637, 0.8694)
     ##     No Information Rate : 0.896           
     ##     P-Value [Acc > NIR] : 1               
     ##                                           
-    ##                   Kappa : 0.4782          
+    ##                   Kappa : 0.5074          
     ##                                           
     ##  Mcnemar's Test P-Value : <2e-16          
     ##                                           
-    ##             Sensitivity : 0.85389         
-    ##             Specificity : 0.85590         
-    ##          Pos Pred Value : 0.40738         
-    ##          Neg Pred Value : 0.98058         
+    ##             Sensitivity : 0.87187         
+    ##             Specificity : 0.86596         
+    ##          Pos Pred Value : 0.43006         
+    ##          Neg Pred Value : 0.98312         
     ##              Prevalence : 0.10395         
-    ##          Detection Rate : 0.08876         
-    ##    Detection Prevalence : 0.21789         
-    ##       Balanced Accuracy : 0.85490         
+    ##          Detection Rate : 0.09063         
+    ##    Detection Prevalence : 0.21074         
+    ##       Balanced Accuracy : 0.86891         
     ##                                           
     ##        'Positive' Class : Yes             
     ##

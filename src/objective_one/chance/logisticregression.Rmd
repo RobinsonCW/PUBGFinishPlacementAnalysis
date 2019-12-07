@@ -50,7 +50,9 @@ data <- data[!data$Id == 'f70c74418bb064',]
 ## Specify Model Columns of Interest
 
 ```{r data-significant-columns}
-cols_to_keep = c("walkDistance", "killPlace", "boosts", "weaponsAcquired", "damageDealt", "heals", "kills", "top.10")
+cols_to_keep = c("walkDistance", "killPlace", "boosts", "weaponsAcquired", "kills", "numGroups", "matchDuration", 
+                 "rideDistance", "longestKill", "killStreaks", "assists", 
+                 "top.10")
 
 cols_to_remove = c("Id", "groupId", "matchId", "matchType", "DBNOs", "winPlacePerc")
 
@@ -65,7 +67,14 @@ head(data[cols_to_keep])
 ```{r data-preparation}
 data.mod <- data %>%
   select(cols_to_keep) %>%
-  mutate(top.10 = factor(top.10, labels = c("No", "Yes")))
+  mutate(kills= kills * 100 / numGroups) %>% # Normalized Kills
+  # mutate(matchDurationLength = as.factor(ifelse(matchDuration < mean(matchDuration), "Low", "High"))) %>%
+  mutate(top.10 = factor(top.10, labels = c("No", "Yes"))) 
+  #mutate(damageDealt = ifelse(damageDealt > 0, log(damageDealt), damageDealt)) %>%
+  # mutate(longestKill = ifelse(longestKill > 0, log(longestKill), longestKill)) %>%
+  # mutate(killPlace= killPlace * 100 / numGroups) # Normalized Kills
+
+
 
 
 summary(data.mod)
