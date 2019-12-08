@@ -109,7 +109,8 @@ walkBin = cut(walkDistance, c(0,500,1000,1500,2000,2500,3000,3500,4000,4500,5000
 
 # Introduction
 
-PlayerUnknown's Battlegrounds, colloquially referred to as PUBG, is an online battle royale-style shooter that is one of the best-selling video games of all time. The game’s developer has created an API (application program interface) where others have collected data on over 65,000 matches and made that data available on the popular online competition site Kaggle. The project team will be utilizing logistic regression, linear and quadratic discriminant analyses, and random forest methods to attempt to create the best model for predicting whether or not an individual player in a solo match will place in the top 10 finishers or not.  
+PlayerUnknown's Battlegrounds, colloquially referred to as PUBG, is an online battle royale-style shooter that is one of the best-selling video games of all time. The game’s developer has created an API (application program interface) where others have collected data on over 65,000 matches and made that data available on the popular online competition site \href{https://www.kaggle.com/c/pubg-finish-placement-prediction/overview}{\textit{
+Kaggle}} \cite{Kaggle2019}.  The project team will be utilizing logistic regression, linear and quadratic discriminant analyses, and random forest methods to attempt to create the best model for predicting whether or not an individual player in a solo match will place in the top 10 finishers or not.  
 
 
 # Data Description
@@ -870,7 +871,7 @@ plot(model.rf)
 
 #### Variable Importance
 
-Similar features were confirmed as having the best predictive outcomes from the variable importance output.  (i.e...Kill Place, Walking Distance, etc..) edge of the graph.
+Similar features were confirmed as having the best predictive outcomes from the variable importance output.  (i.e...Kill Place, Walking Distance, etc..)
 
 ```{r rf.variable.importance, message=FALSE, echo=FALSE, eval=TRUE}
 
@@ -938,7 +939,7 @@ When running our model against the hold out test data set, we received the follo
 
 Model   |AUC     |Sensitivity |Specificity | Error Rate (1 - Accuracy)
 --------|--------|------------|------------|--------------------------
-RF      | 0.906  | 0.918      | 0.894      | 10.4%
+RF      | 0.963  | 0.918      | 0.894      | 10.4%
 
 
 
@@ -960,8 +961,10 @@ Model   |AUC     |Sensitivity |Specificity | Error Rate (1 - Accuracy)
 Logistic regression (simple - final)   | 0.932  | 0.863      | 0.841      | 15.6%
 Logistic regression (complex - model 7)   | 0.936  | 0.895      | 0.840      | 15.4%
 LDA   | 0.941  | 0.575      | 0.961      | 7.94%
-Random forest   | 0.906  | 0.918      | 0.894      | 10.4%
-The logistic regression models both performed well on all four metrics of interest (AUC, sensitivity, specificity, and error rate). Due to the fact that the simple logistic regression model is easier to interpret than the complex version, we prefer this simple model over the complex one. LDA had the highest AUC and lowest error rate. However, due to its low sensitivity, it was the worst model in terms of answering our question of interest: how can we best predict top 10 finishers. Random forest outperformed the logistic models in its error rate and specificity, but not in AUC or sensitivity. Further hyperparameter tuning could improve this model.
+Random forest   | 0.963  | 0.918      | 0.894      | 10.4%
+
+The logistic regression models both performed well on all four metrics of interest (AUC, sensitivity, specificity, and error rate). Due to the fact that the simple logistic regression model is easier to interpret than the complex version, we prefer this simple model over the complex one. LDA had the highest AUC and lowest error rate. However, due to its low sensitivity, it was the worst model in terms of answering our question of interest: how can we best predict top 10 finishers. Random forest outperformed the logistic models in most categories and perhaps further hyperparameter tuning could improve this model.  
+
 However, due to its overall simplicity and easy interpretability, our preferred model is the simple logistic regression model. Logistic regression in this format allows us to specify the log-odds of placing in the top 10, as shown in the Model Interpretation section of Objective 1.
 Based on the information we gathered from all four methods of modeling this data, we recommend to PUBG players to rank highly in the number of kills per match, walk a lot (or stay in the match long enough to walk a lot), and use boost items to your advantage.
 
@@ -1356,7 +1359,7 @@ text(x = .25, y = .65 ,paste("AUC = ", round(auc.train[[1]],3), sep = ""))
 
 #### Model
 
-```{r rf.model.appendix, eval=FALSE}
+```{r rf.model.appendix, eval=TRUE}
 
 # results='hide', message=FALSE, include=FALSE, echo=FALSE
 rf_cols_to_remove = c("Id", "groupId", "matchId", "matchType", "DBNOs", "revives", "winPlacePerc")
@@ -1388,7 +1391,7 @@ model.rf
 
 #### Tuning Plot
 
-```{r rf.model.plot.appendix, eval=FALSE}
+```{r rf.model.plot.appendix, eval=TRUE}
 
 plot(model.rf)
 
@@ -1396,7 +1399,7 @@ plot(model.rf)
 
 #### Variable Importance
 
-```{r rf.variable.importance.appendix, eval=FALSE}
+```{r rf.variable.importance.appendix, eval=TRUE}
 
 # varImp(model.rf)
 
@@ -1424,32 +1427,28 @@ prd.rf.test <- predict(model.rf, test.rf)
 
 #### Confusion Matrix
 
-```{r rf.confusion.matrix.appendix, eval=FALSE}
+```{r rf.confusion.matrix.appendix, eval=TRUE}
 confusionMatrix(data=prd.rf.test,
                 reference=test.rf$top.10, "Yes")
 ```
 
 #### ROC Curve
 
-```{r rf.area.under.curve.appendix, eval=FALSE}
-plotRoc <- function(preds, truth) {
-  pred <- prediction(preds, truth)
-  roc.perf = performance(pred, measure = "tpr", x.measure = "fpr")
-  auc.train <- performance(pred, measure = "auc")
-  auc.train <- auc.train@y.values
-  #Plot ROC
-  par(mar=c(4,4,4,4))
-  plot(roc.perf,main="Random Forest")
-  abline(a=0, b= 1) #Ref line indicating poor performance
-  text(x = .40, y = .6,paste("AUC = ", round(auc.train[[1]],3), sep = ""))
-  table(test$top.10, useNA = "ifany")
-}
+```{r rf.area.under.curve.appendix, eval=TRUE, fig.align = "center"}
+prd.rf.test <- predict(model.rf, test.rf, type = "prob")
 
+predictions <- as.vector(prd.rf.test[,2])
 
+pred <- prediction(predictions, test$top.10)
 
-plotRoc(as.integer(prd.rf.test),as.integer(test.rf$top.10))
+perf_AUC <- performance(pred,"auc") #Calculate the AUC value
+AUC=perf_AUC@y.values[[1]]
 
-# ?randomForest
+perf_ROC=performance(pred,"tpr","fpr") #plot the actual ROC curve
+plot(perf_ROC, main="Random Forest")
+text(0.5,0.5,paste("AUC = ",format(AUC, digits=3, scientific=FALSE)))
+abline(a=0, b= 1) #Ref line indicating poor performance
+
 
 ```
 
