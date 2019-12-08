@@ -31,7 +31,7 @@ editor_options:
 ---
 ```{r, lib-read, results='hide', message=FALSE, include=FALSE, echo=FALSE, eval=TRUE}
 
-setwd("/Users/robinsoncw/github/smu/PUBGFinishPlacementAnalysis/src")
+setwd("C:/Users/Chance/github/smu/PUBGFinishPlacementAnalysis/data")
 
 # library imports
 library(MASS)
@@ -60,7 +60,7 @@ library(e1071)
 library(corrplot)
 library(GGally)
 library(formattable)
-# library(dlookr)
+#library(dlookr)
 ```
 
 
@@ -120,38 +120,38 @@ The source data is available on Kaggle.com under the competition PUBG Finish Pla
 
 ## Data Dictionary
 
-Column Name      |Type           |Description
------------------|---------------|-------------------------------------------------
-DBNOs            |               |Number of enemy players knocked.
-assists          |               |Number of enemy players this player damaged that were killed by teammates.
-boosts           |               |Number of boost items used.
-damageDealt      |               |Total damage dealt. Note: Self inflicted damage is subtracted.
-headshotKills    |               |Number of enemy players killed with headshots.
-heals            |               |Number of healing items used.
-Id               |               |Players Id
-killPlace        |               |Ranking in match of number of enemy players killed.
-killPoints       |               |Kills-based external ranking of player. (Think of this as an Elo ranking where only kills matter.) If there is a value other than -1 in rankPoints, then any 0 in killPoints should be treated as a None.
-killStreaks      |               |Max number of enemy players killed in a short amount of time.
-kills            |               |Number of enemy players killed.
-longestKill      |               |Longest distance between player and player killed at time of death. 
-matchDuration    |               |Duration of match in seconds.
-matchId          |               |ID to identify match. There are no matches that are in both the training and testing set.
-matchType        |               |String identifying the game mode that the data comes from. 
-rankPoints       |               |Elo-like ranking of player. 
-revives          |               |Number of times this player revived teammates.
-rideDistance     |               |Total distance traveled in vehicles measured in meters.
-roadKills        |               |Number of kills while in a vehicle.
-swimDistance     |               |Total distance traveled by swimming measured in meters.
-teamKills        |               |Number of times this player killed a teammate.
-vehicleDestroys  |               |Number of vehicles destroyed.
-walkDistance     |               |Total distance traveled on foot measured in meters.
-weaponsAcquired  |               |Number of weapons picked up.
-winPoints        |               |Win-based external ranking of player. (Think of this as an Elo ranking where only winning matters.) If there is a value other than -1 in rankPoints, then any 0 in winPoints should be treated as a None.
-groupId          |               |ID to identify a group within a match. If the same group of players plays in different matches, they will have a different groupId each time.
-numGroups        |               |Number of groups we have data for in the match.
-maxPlace         |               |Worst placement we have data for in the match. This may not match with numGroups, as sometimes the data skips over placements.
-winPlacePerc     |               |This is a percentile winning placement, where 1 corresponds to 1st place, and 0 corresponds to last place in the match. (to be removed from our binomial classfier so as not to influence our predictive results)
-top.10           |               |The target of prediction. This is a percentile winning placement, where 1 corresponds to a top 10% placement a 0 in the lower 90%.
+Column Name      |Description
+-----------------|----------------------------------------------------------------
+DBNOs            |Number of enemy players knocked.
+assists          |Number of enemy players this player damaged that were killed by teammates.
+boosts           |Number of boost items used.
+damageDealt      |Total damage dealt. Note: Self inflicted damage is subtracted.
+headshotKills    |Number of enemy players killed with headshots.
+heals            |Number of healing items used.
+Id               |Players Id
+killPlace        |Ranking in match of number of enemy players killed.
+killPoints       |Kills-based external ranking of player. (Think of this as an Elo ranking where only kills matter.) If there is a value other than -1 in rankPoints, then any 0 in killPoints should be treated as a None.
+killStreaks      |Max number of enemy players killed in a short amount of time.
+kills            |Number of enemy players killed.
+longestKill      |Longest distance between player and player killed at time of death. 
+matchDuration    |Duration of match in seconds.
+matchId          |ID to identify match. There are no matches that are in both the training and testing set.
+matchType        |String identifying the game mode that the data comes from. 
+rankPoints       |Elo-like ranking of player. 
+revives          |Number of times this player revived teammates.
+rideDistance     |Total distance traveled in vehicles measured in meters.
+roadKills        |Number of kills while in a vehicle.
+swimDistance     |Total distance traveled by swimming measured in meters.
+teamKills        |Number of times this player killed a teammate.
+vehicleDestroys  |Number of vehicles destroyed.
+walkDistance     |Total distance traveled on foot measured in meters.
+weaponsAcquired  |Number of weapons picked up.
+winPoints        |Win-based external ranking of player. (Think of this as an Elo ranking where only winning matters.) If there is a value other than -1 in rankPoints, then any 0 in winPoints should be treated as a None.
+groupId          |ID to identify a group within a match. If the same group of players plays in different matches, they will have a different groupId each time.
+numGroups        |Number of groups we have data for in the match.
+maxPlace         |Worst placement we have data for in the match. This may not match with numGroups, as sometimes the data skips over placements.
+winPlacePerc     |This is a percentile winning placement, where 1 corresponds to 1st place, and 0 corresponds to last place in the match. (to be removed from our binomial classfier so as not to influence our predictive results)
+top.10           |The target of prediction. This is a percentile winning placement, where 1 corresponds to a top 10% placement a 0 in the lower 90%.
 
 
 \newpage
@@ -643,6 +643,7 @@ text(x = .25, y = .65 ,paste("AUC = ", round(auc.train[[1]],3), sep = ""))
 Although the QDA is better at predicting the top 10 placements that were true top 10 than LDA (QDA sensitivity of 0.68 > LDA sensitivity of 0.57), QDA predicts many more incorrect top 10 placements than LDA does (1907 LDA false positives < 4853 QDA false positives). Because LDA has a better overall accuracy (0.9206 for LDA > 0.8779 for QDA), we think the LDA is a stronger model for prediction than QDA.
 
 
+\newpage
 
 ### Random Forest
 We then tried our first non-parametrical model with Random Forest, which averages out the results of many Decision Trees to provide the lowest error rates across all of the permuations attempted.
@@ -683,7 +684,9 @@ model.rf
 
 ```
 
-#### Error Rates by # of Trees
+#### Error Rates by No. of Trees
+
+The model could likely be tuned further as you can see there's no additional payoff from having the `ntree` value set so high.  In fact, it could be harming the performance by setting it to such a high value as you can see the error rates starting to trend upwards at the far-right edge of the graph.
 
 ```{r rf.model.plot, fig.align = "center", message=FALSE, echo=FALSE, eval=TRUE}
 
@@ -691,8 +694,11 @@ plot(model.rf)
 
 ```
 
+\newpage
 
 #### Variable Importance
+
+Similar features were confirmed as having the best predictive outcomes from the variable importance output.  (i.e...Kill Place, Walking Distance, etc..) edge of the graph.
 
 ```{r rf.variable.importance, message=FALSE, echo=FALSE, eval=TRUE}
 
@@ -749,6 +755,7 @@ plotRoc(as.integer(prd.rf.test),as.integer(test.rf$top.10))
 
 ```
 
+\newpage
 
 #### Random Forest Results
 
@@ -759,7 +766,7 @@ When running our model against the hold out test data set, we received the follo
 
 Model   |AUC     |Sensitivity |Specificity | Error Rate (1 - Accuracy)
 --------|--------|------------|------------|--------------------------
-Initial | 0.906  | 0.918      | 0.894      | 10.4%
+RF      | 0.906  | 0.918      | 0.894      | 10.4%
 
 
 
@@ -767,7 +774,7 @@ Initial | 0.906  | 0.918      | 0.894      | 10.4%
 
 The Random Forest approach required that the model be tuned with parameters better suited to the provided data set.  
 
-The following arguments were important to address bias/ variance issues that were observed when using the default settings.  Trial and error techniques along with tuning libraries in `caret` and native to the `randomForest` library allowed us to better optimize the results.  We were able to get a roughly 90/90 split between our sensitivity and specificity.  Or rather, when it was in the top 10%, the model was able to accuracty predict that it was.  The same could be said for the specificity metric.
+The following arguments were important to address bias/ variance issues that were observed when using the default settings.  Trial and error techniques along with tuning libraries in `caret` and native to the `randomForest` library allowed us to better optimize the results.  We were able to get a roughly 90/90 split between our sensitivity and specificity performance measures.  Or rather, when it was in the top 10%, the model was able to accurately predict that it was roughly 90% of the time.  The same could be said for the specificity metric.
 
 From the library documentation:
 
@@ -983,5 +990,108 @@ text(x = .25, y = .65 ,paste("AUC = ", round(auc.train[[1]],3), sep = ""))
 
 
 ```
+
+
+### Random Forest
+
+#### Model
+
+```{r rf.model.appendix, eval=FALSE}
+
+# results='hide', message=FALSE, include=FALSE, echo=FALSE
+rf_cols_to_remove = c("Id", "groupId", "matchId", "matchType", "DBNOs", "revives", "winPlacePerc")
+
+train.rf <- train %>%
+  dplyr::select(-rf_cols_to_remove) %>%
+  mutate(kills  = kills * 100 / numGroups) %>% # Normalized Kills
+  mutate(matchDuration = as.factor(ifelse(matchDuration < mean(matchDuration), "Low", "High"))) %>%
+  mutate(top.10 = factor(top.10, labels = c("No", "Yes"))) 
+
+
+test.rf <- test %>%
+  dplyr::select(-rf_cols_to_remove) %>%
+  mutate(kills  = kills * 100 / numGroups) %>% # Normalized Kills
+  mutate(matchDuration = as.factor(ifelse(matchDuration < mean(matchDuration), "Low", "High"))) %>%
+  mutate(top.10 = factor(top.10, labels = c("No", "Yes"))) 
+
+set.seed(1234)
+model.rf <- randomForest(as.factor(top.10) ~ ., 
+                               data = train.rf, 
+                               ntree = 500, 
+                               mtry = 12, 
+                               cutoff = c(0.4,1-0.40))
+
+
+model.rf
+
+```
+
+#### Tuning Plot
+
+```{r rf.model.plot.appendix, eval=FALSE}
+
+plot(model.rf)
+
+```
+
+#### Variable Importance
+
+```{r rf.variable.importance.appendix, eval=FALSE}
+
+# varImp(model.rf)
+
+rf.imp.variables <-data.frame(varImp(model.rf))
+
+# rf.imp.variables[order(rf.imp.variables$Overall,decreasing = T),]
+
+kable(data.frame('Column Name' = rownames(rf.imp.variables), 
+                 'Overall Score'= rf.imp.variables$Overall),
+      "latex", booktabs = T)  %>%
+  kable_styling(position = "center")
+
+```
+
+
+#### Predict
+
+```{r rf.predict.appendix, eval=FALSE}
+
+
+prd.rf.train <- predict(model.rf, train.rf)
+prd.rf.test <- predict(model.rf, test.rf)
+
+```
+
+#### Confusion Matrix
+
+```{r rf.confusion.matrix.appendix, eval=FALSE}
+confusionMatrix(data=prd.rf.test,
+                reference=test.rf$top.10, "Yes")
+```
+
+#### ROC Curve
+
+```{r rf.area.under.curve.appendix, eval=FALSE}
+plotRoc <- function(preds, truth) {
+  pred <- prediction(preds, truth)
+  roc.perf = performance(pred, measure = "tpr", x.measure = "fpr")
+  auc.train <- performance(pred, measure = "auc")
+  auc.train <- auc.train@y.values
+  #Plot ROC
+  par(mar=c(4,4,4,4))
+  plot(roc.perf,main="Random Forest")
+  abline(a=0, b= 1) #Ref line indicating poor performance
+  text(x = .40, y = .6,paste("AUC = ", round(auc.train[[1]],3), sep = ""))
+  table(test$top.10, useNA = "ifany")
+}
+
+
+
+plotRoc(as.integer(prd.rf.test),as.integer(test.rf$top.10))
+
+# ?randomForest
+
+```
+
 
 # References

@@ -98,7 +98,7 @@ test = data.mod[-train.indices,]
 train <- downSample(train, train$top.10, list = FALSE)
 train$Class <- NULL
 
-model.lda.train <- lda(top.10 ~ ., data = train)
+model.lda.train <- lda(top.10 ~ ., data = train, prior=c(.1,.9))
 
 p1 <- predict(model.lda.train, train)
 
