@@ -31,12 +31,13 @@ editor_options:
 ---
 ```{r, lib-read, results='hide', message=FALSE, include=FALSE, echo=FALSE, eval=TRUE}
 
-#setwd('./src/')
+setwd("/Users/robinsoncw/github/smu/PUBGFinishPlacementAnalysis/src")
 
 # library imports
 library(MASS)
 library(tidyverse)
 library(knitr)
+library(kableExtra)
 
 # Random Forest
 library(randomForest)  
@@ -59,7 +60,7 @@ library(e1071)
 library(corrplot)
 library(GGally)
 library(formattable)
-library(dlookr)
+# library(dlookr)
 ```
 
 
@@ -682,12 +683,29 @@ model.rf
 
 ```
 
+#### Error Rates by # of Trees
 
-```{r rf.plot, results='hide', message=FALSE, include=FALSE, echo=FALSE, eval=TRUE}
-
+```{r rf.model.plot, fig.align = "center", message=FALSE, echo=FALSE, eval=TRUE}
 
 plot(model.rf)
-varImp(model.rf)
+
+```
+
+
+#### Variable Importance
+
+```{r rf.variable.importance, message=FALSE, echo=FALSE, eval=TRUE}
+
+# varImp(model.rf)
+
+rf.imp.variables <-data.frame(varImp(model.rf))
+
+# rf.imp.variables[order(rf.imp.variables$Overall,decreasing = T),]
+
+kable(data.frame('Column Name' = rownames(rf.imp.variables), 
+                 'Overall Score'= rf.imp.variables$Overall),
+      "latex", booktabs = T)  %>%
+  kable_styling(position = "center")
 
 ```
 
@@ -734,24 +752,24 @@ plotRoc(as.integer(prd.rf.test),as.integer(test.rf$top.10))
 
 #### Random Forest Results
 
-The out-of-bag estimate of the error rate was 9.71% which seems to be consistent with our results against the test data not used to train the model with.
+The out-of-bag estimate of the error rate was 9.71% which wasconsistent with our finding from classifying the test data not used to train the model with.  This should allow us to better guage what real-world performance would be like with new data to apply the model to.
 
 When running our model against the hold out test data set, we received the following performance metrics.
 
-- Accuracy    : 0.8964  
-- Sensitivity : 0.91811 
-- Specificity : 0.89384  
-- AUC         : 0.90598
+
+Model   |AUC     |Sensitivity |Specificity | Error Rate (1 - Accuracy)
+--------|--------|------------|------------|--------------------------
+Initial | 0.906  | 0.918      | 0.894      | 10.4%
 
 
 
 #### Random Forest Conclusion
 
-The Random Forest model required that the model be tuned with parameters better suited to the data set at hand.  
+The Random Forest approach required that the model be tuned with parameters better suited to the provided data set.  
 
-The following arguments were important to address bias/ variance issues that we observed when using the default settings.  Trial and error along with tuning libraries in `caret` and native to the `randomForest` library allowed us to better optimize the results.  We were able to get a roughly 90/90 split between our sensitivity and specificity.  Or rather, when it was in the top 10%, how often did we predict that it was and when it was in the bottom 90%, how often did we predict that it was respectively
+The following arguments were important to address bias/ variance issues that were observed when using the default settings.  Trial and error techniques along with tuning libraries in `caret` and native to the `randomForest` library allowed us to better optimize the results.  We were able to get a roughly 90/90 split between our sensitivity and specificity.  Or rather, when it was in the top 10%, the model was able to accuracty predict that it was.  The same could be said for the specificity metric.
 
-
+From the library documentation:
 
 * `ntree`      : Number of trees to grow
 * `mtry`       : Number of variables randomly sampled as candidates at each split. 
