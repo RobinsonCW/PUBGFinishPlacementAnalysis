@@ -8,7 +8,7 @@ Prediction of top 10% finish placement of PUBG players
 
 ## Analysis Files
 
-* [PUBG Placement Analysis (html)](https://github.com/RobinsonCW/PUBGFinishPlacementAnalysis/blob/master/src/PUBG-Placement-Analysis.pdf): A paper covering the analysis. 
+* [PUBG Placement Analysis (pdf)](https://github.com/RobinsonCW/PUBGFinishPlacementAnalysis/blob/master/src/PUBG-Placement-Analysis.pdf): A paper covering the analysis. 
 * [PUBG Placement Analysis (Rmd)](https://github.com/RobinsonCW/PUBGFinishPlacementAnalysis/blob/master/src/PUBG%20Placement%20Analysis.Rmd): An R-markdown file with the analysis.
 
 
