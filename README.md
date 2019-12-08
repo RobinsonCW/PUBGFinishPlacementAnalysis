@@ -3,7 +3,11 @@
 Created by [Chance Robinson](https://github.com/RobinsonCW), [Allison Roderick](https://github.com/allroderick) and [William Arnost](https://github.com/warnost)
 
 ## Purpose
-Prediction of finish placement of PUBG players
+Prediction of top 10% finish placement of PUBG players
+
+
+## Codebook
+The [Codebook](https://github.com/RobinsonCW/PUBGFinishPlacementAnalysis/blob/master/CodeBook.md) provides additional details regarding the session information of the environment.
 
 
 ## Repo Structure
