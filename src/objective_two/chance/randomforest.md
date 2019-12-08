@@ -25,14 +25,14 @@ Chance Robinson
 library(tidyverse)
 ```
 
-    ## -- Attaching packages -------------------------------------------------------------------------------------------------------- tidyverse 1.2.1 --
+    ## -- Attaching packages --------------------------------------------------------------------------------------------------------------------- tidyverse 1.2.1 --
 
     ## v ggplot2 3.2.1     v purrr   0.3.3
     ## v tibble  2.1.3     v dplyr   0.8.3
     ## v tidyr   1.0.0     v stringr 1.4.0
     ## v readr   1.3.1     v forcats 0.4.0
 
-    ## -- Conflicts ----------------------------------------------------------------------------------------------------------- tidyverse_conflicts() --
+    ## -- Conflicts ------------------------------------------------------------------------------------------------------------------------ tidyverse_conflicts() --
     ## x dplyr::filter() masks stats::filter()
     ## x dplyr::lag()    masks stats::lag()
 
@@ -428,55 +428,39 @@ confusionMatrix(data=p2,
 ``` r
 # ?pROC
 
-auc <- roc(as.integer(test$top.10), as.integer(p2))
+# auc <- roc(as.integer(test$top.10), as.integer(p2))
+# # print(auc)
+# 
+# # plot(auc, ylim=c(0,1), print.thres=TRUE, main=paste('AUC of Test Set:', round(auc$auc[[1]],2)))
+# # abline(h=1,col='green',lwd=2)
+# # abline(h=0,col='red',lwd=2)
+# 
+# g <- ggroc(auc, alpha = 0.5, colour = "red", linetype = 2, size = 2) +
+#   theme_minimal() +
+#   ggtitle(paste('AUC of Test Set:', round(auc$auc[[1]],2))) +
+#   geom_segment(aes(x = 0, xend = 1, y = 0, yend = 1), color="darkgrey", linetype="dashed")
+
+# 
+# plot(g)
+# 
+# 
+# plotRoc <- function(preds, truth) {
+#   pred <- prediction(preds, truth)
+#   roc.perf = performance(pred, measure = "tpr", x.measure = "fpr")
+#   auc.train <- performance(pred, measure = "auc")
+#   auc.train <- auc.train@y.values
+#   
+#   #Plot ROC
+#   par(mar=c(4,4,4,4))
+#   plot(roc.perf,main="Random Forest")
+#   abline(a=0, b= 1) #Ref line indicating poor performance
+#   text(x = .40, y = .6,paste("AUC = ", round(auc.train[[1]],3), sep = ""))
+#   table(test$top.10, useNA = "ifany")
+# }
+# 
+# 
+# plotRoc(as.integer(p2),as.integer(test$top.10))
 ```
-
-    ## Setting levels: control = 1, case = 2
-
-    ## Setting direction: controls < cases
-
-``` r
-# print(auc)
-
-# plot(auc, ylim=c(0,1), print.thres=TRUE, main=paste('AUC of Test Set:', round(auc$auc[[1]],2)))
-# abline(h=1,col='green',lwd=2)
-# abline(h=0,col='red',lwd=2)
-
-g <- ggroc(auc, alpha = 0.5, colour = "red", linetype = 2, size = 2) +
-  theme_minimal() + 
-  ggtitle(paste('AUC of Test Set:', round(auc$auc[[1]],2))) + 
-  geom_segment(aes(x = 0, xend = 1, y = 0, yend = 1), color="darkgrey", linetype="dashed")
-  
-
-plot(g)
-```
-
-![](randomforest_files/figure-gfm/rf-auc-plot-test-1.png)<!-- -->
-
-``` r
-plotRoc <- function(preds, truth) {
-  pred <- prediction(preds, truth)
-  roc.perf = performance(pred, measure = "tpr", x.measure = "fpr")
-  auc.train <- performance(pred, measure = "auc")
-  auc.train <- auc.train@y.values
-  
-  #Plot ROC
-  par(mar=c(4,4,4,4))
-  plot(roc.perf,main="Random Forest")
-  abline(a=0, b= 1) #Ref line indicating poor performance
-  text(x = .40, y = .6,paste("AUC = ", round(auc.train[[1]],3), sep = ""))
-  table(test$top.10, useNA = "ifany")
-}
-
-
-plotRoc(as.integer(p2),as.integer(test$top.10))
-```
-
-![](randomforest_files/figure-gfm/rf-auc-plot-test-2.png)<!-- -->
-
-    ## 
-    ##    No   Yes 
-    ## 48906  5677
 
 ``` r
 set.seed(1234)
@@ -523,7 +507,7 @@ print(model.rf.train)
 
 ``` r
 p1 <- predict(model.rf.train, train)
-p2 <- predict(model.rf.train, test)
+p2 <- predict(model.rf.train, test)  #type = "prob"
 
 
 print(model.rf.train)
@@ -643,29 +627,23 @@ confusionMatrix(data=p2,
     ## 
 
 ``` r
-plotRoc <- function(preds, truth) {
-  pred <- prediction(preds, truth)
-  roc.perf = performance(pred, measure = "tpr", x.measure = "fpr")
-  auc.train <- performance(pred, measure = "auc")
-  auc.train <- auc.train@y.values
-  #Plot ROC
-  par(mar=c(4,4,4,4))
-  plot(roc.perf,main="Random Forest")
-  abline(a=0, b= 1) #Ref line indicating poor performance
-  text(x = .40, y = .6,paste("AUC = ", round(auc.train[[1]],3), sep = ""))
-  table(test$top.10, useNA = "ifany")
-}
+p3 <- predict(model.rf.train, test, type = "prob")  #type = "prob"
+# p3
+
+predictions <- as.vector(p3[,2])
+
+pred <- prediction(predictions, test$top.10)
+
+perf_AUC <- performance(pred,"auc") #Calculate the AUC value
+AUC=perf_AUC@y.values[[1]]
 
 
-
-plotRoc(as.integer(p2),as.integer(test$top.10))
+perf_ROC=performance(pred,"tpr","fpr") #plot the actual ROC curve
+plot(perf_ROC, main="Random Forest")
+text(0.5,0.5,paste("AUC = ",format(AUC, digits=4, scientific=FALSE)))
 ```
 
 ![](randomforest_files/figure-gfm/pre-train-test-split-2.png)<!-- -->
-
-    ## 
-    ##    No   Yes 
-    ## 48879  5703
 
 ``` r
 #Create control function for training with 10 folds and keep 3 folds for training. search method is grid.
