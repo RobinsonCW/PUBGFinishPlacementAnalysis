@@ -63,9 +63,9 @@ library(formattable)
 
 ```{r, load-data, results='hide', message=FALSE, include=FALSE, echo=FALSE, eval=TRUE}
 
-train <- read.csv("C:/Git/PUBGFinishPlacementAnalysis/data/pubg_solo_game_types_train_downsampled.csv", stringsAsFactors=FALSE)
-test <- read.csv("C:/Git/PUBGFinishPlacementAnalysis/data/pubg_solo_game_types_test_full.csv", stringsAsFactors=FALSE)
-solo <- read_csv("C:/Git/PUBGFinishPlacementAnalysis/data/pubg_solo_game_types.csv") %>% dplyr::select(-c("DBNOs","revives"))
+train <- read.csv("../data/pubg_solo_game_types_train_downsampled.csv", stringsAsFactors=FALSE)
+test <- read.csv("../data/pubg_solo_game_types_test_full.csv", stringsAsFactors=FALSE)
+solo <- read_csv("../data/pubg_solo_game_types.csv") %>% dplyr::select(-c("DBNOs","revives"))
 
 # train <- read.csv("../data/pubg_solo_game_types_train_downsampled.csv", stringsAsFactors=FALSE)
 # test <- read.csv("../data/pubg_solo_game_types_test_full.csv", stringsAsFactors=FALSE)
@@ -92,7 +92,7 @@ test <- test %>%
 
 # Introduction
 
-[Intro]
+PlayerUnknown's Battlegrounds, colloquially referred to as PUBG, is an online battle royale-style shooter that is one of the best-selling video games of all time. The game’s developer has created an API (application program interface) where others have collected data on over 65,000 matches and made that data available on the popular online competition site Kaggle. The project team will be utilizing logistic regression, linear and quadratic discriminant analyses, and random forest methods to attempt to create the best model for predicting whether or not an individual player in a solo match will place in the top 10 finishers or not.  
 
 
 # Data Description
@@ -178,8 +178,9 @@ killCut = as.factor(ifelse(kills >= 2,1,0)),
 assistCut = as.factor(ifelse(assists >= 2,1,0)),
 damageCut = as.factor(ifelse(damageDealt >= 250,1,0)),
 streakCut = as.factor(ifelse(killStreaks >= 1,1,0)),
-killsPK = kills/(walkDistance+1/1000),
-damageKill = kills/(damageDealt+1)
+killsPK = kills/(walkDistance/1000+1),
+damageKill = kills/(damageDealt+1),
+walkBin = cut(walkDistance, c(0,500,1000,1500,2000,2500,3000,3500,4000,4500,5000,20000))
 )
 
 test_obj1 <- test %>% mutate(
@@ -195,8 +196,9 @@ test_obj1 <- test %>% mutate(
   assistCut = as.factor(ifelse(assists >= 2,1,0)),
   damageCut = as.factor(ifelse(damageDealt >= 250,1,0)),
   streakCut = as.factor(ifelse(killStreaks >= 1,1,0)),
-  killsPK = kills/(walkDistance+1/1000),
-  damageKill = kills/(damageDealt+1)
+  killsPK = kills/(walkDistance/1000+1),
+  damageKill = kills/(damageDealt+1),
+  walkBin = cut(walkDistance, c(0,500,1000,1500,2000,2500,3000,3500,4000,4500,5000,20000))
 )
 
 train_obj1 <- train %>% mutate(
@@ -212,8 +214,9 @@ train_obj1 <- train %>% mutate(
   assistCut = as.factor(ifelse(assists >= 2,1,0)),
   damageCut = as.factor(ifelse(damageDealt >= 250,1,0)),
   streakCut = as.factor(ifelse(killStreaks >= 1,1,0)),
-  killsPK = kills/(walkDistance+1/1000),
-  damageKill = kills/(damageDealt+1)
+  killsPK = kills/(walkDistance/1000+1),
+  damageKill = kills/(damageDealt+1),
+  walkBin = cut(walkDistance, c(0,500,1000,1500,2000,2500,3000,3500,4000,4500,5000,20000))
 )
 
 ## References to groups of columns
@@ -234,10 +237,10 @@ plotRoc <- function(preds, truth) {
   plot(roc.perf,main="Ordinary Logistic")
   abline(a=0, b= 1) #Ref line indicating poor performance
   text(x = .40, y = .6,paste("AUC = ", round(auc.train[[1]],3), sep = ""))
-  table(test$top.10, useNA = "ifany")
+  #table(test_obj1$top.10, useNA = "ifany")
 }
 scoreMod <- function(model.out) {
-  model.pred <- predict(model.out, newdata = test, type = "response")
+  model.pred <- predict(model.out, newdata = test_obj1, type = "response")
   plotRoc(model.pred,test_obj1$top.10)
   confusionMatrix(as.factor(as.numeric(model.pred > 0.5)), test_obj1$top.10, positive = "1")
 }
@@ -263,7 +266,7 @@ summary(model.main)
 #scoreMod(model.main)
 ```
 
-We can see some insignificant variables, and the vif (Appendix Ref) will show some correlation. This model performance of this model is as follows: 
+We can see some insignificant variables, and the vif (Appendix: Logistic Model) will show some correlation. This model performance of this model is as follows: 
 
 Model   |AUC     |Sensitivity |Specificity | Error Rate (1 - Accuracy)
 --------|--------|------------|------------|--------------------------
@@ -272,7 +275,7 @@ Initial | 0.941  | 0.891      | 0.843      | 15.2%
 
 ## Variable Selection 
 
-Next, we use lasso to narrow these down to the most important variables. First, we used cv.glmnet to search for the ideal value of lambda for the lasso regression (Appendix Reference). We selected the lambda.1se value, which will hopefully eliminate the most variables. Using that value for lambda, lasso produced this output:
+Next, we use lasso to narrow these down to the most important variables. First, we used cv.glmnet to search for the ideal value of lambda for the lasso regression (Appendix: Logistic Regression). We selected the lambda.1se value, which will hopefully eliminate the most variables. Using that value for lambda, lasso produced this output:
 
 ```{r obj1_lasso, message=FALSE, include=TRUE, echo=FALSE, eval=TRUE}
 set.seed(1234)
@@ -306,7 +309,7 @@ coef(model.lasso)
 
 ## Final Iterations
 
-The selection eliminated damageDealt, headshotKills, and killPoints. We created a model using just the variables from lasso (ref) and found two issues. First, winPoints and rankPoints have high VIFs. Removing them individually found that when one is missing, the other is no longer significant. We decided to remove them both. Second, the cooksD plot shows 3 potentially influential points. All three points have high values ( > p99 threshold) for roadKills and killStreaks, and I also found through adding and removing variables that swimDistance contributes influential points. We chose to remove these variables, as a very small part of the population has high values in these metrics, and it negatively effects the model.  
+The selection eliminated damageDealt, headshotKills, and killPoints. We created a model using just the variables from lasso and found two issues. First, winPoints and rankPoints have high VIFs. Removing them individually found that when one is missing, the other is no longer significant. We decided to remove them both. Second, the cooksD plot shows 3 potentially influential points. All three points have high values ( > p99 threshold) for roadKills and killStreaks, and I also found through adding and removing variables that swimDistance contributes influential points. We chose to remove these variables, as a very small part of the population has high values in these metrics, and it negatively effects the model.  
 
 ```{r obj1_final, message=FALSE, include=TRUE, echo=FALSE, eval=TRUE}
 model.final.lasso <- glm(top.10~assists + boosts + heals + teamKills + weaponsAcquired +
@@ -432,6 +435,51 @@ As we stated in the Problem Statement, we would like to predict if a player fini
 
 ## Model Selection
 
+### Logistic Regression with complex terms
+
+#### Objective 
+
+In the first logistic regression we used terms that were easier to interpret, now we will add more complex terms. The final model from the previous section was:
+
+top.10 ~ assists + boosts + heals + weaponsAcquired + killPlace + walkDistance
+
+Additional terms considered in the more complex model are as follows:
+* Dichotomized variables: Two level versions of the original variables, with cutoffs determined by EDA to try to separate top.10 from the rest of the group
+* Binned Variables: These have more levels than the dichotomized versions, to try to capture more complexity
+* Ratios: Key variables are compared against each other in ratio format. For instance, does damage dealt per kill make a difference?
+*	Interactions: multiplicative relationships between key variables. For instance, does increased damage matter if the player is above the boosts cut point?
+*	Full definitions of new variables can be found in Appendix: Complex Logistic Regression
+
+#### Model Selection
+
+We ran a total of 8 additional logistic models, with the following results:
+
+Model   |AUC     |Sensitivity |Specificity | Error Rate (1 - Accuracy) | Warning
+--------|--------|------------|------------|-------------------------------------
+Model 01 | 0.932 | 0.873 |  0.836 | 16.0% | No
+Model 02 | 0.932 | 0.862 |  0.841 | 15.7% | No
+Model 03 | 0.932 | 0.885 |  0.832 | 16.2% | No
+Model 04 | 0.936 | 0.889 |  0.827 | 16.6% | No
+Model 05 | 0.932 | 0.864 |  0.841 | 15.6% | No
+Model 06 | 0.939 | 0.888 |  0.836 | 15.8% | prediction from a rank-deficient fit may be misleading
+Model 07 | 0.936 | 0.895 |  0.840 | 15.4% | No
+Model 08 | 0.936 | 0.894 |  0.838 | 15.6% | fitted probabilities numerically 0 or 1 occurred 
+Obj1 Final   | 0.932  | 0.863      | 0.841      | 15.6% | No
+
+The most successful model was number 7, which had the best accuracy with no warnings. The model coefficients and performance are in the figures below:  
+
+```{r obj2_logistic1, message=FALSE, include=TRUE, echo=FALSE, eval=TRUE}
+model.07 <- glm(top.10~boosts + assists + weaponsAcquired + killPlace + walkDistance + killsPK,
+                data= train_obj1, family = binomial(link="logit"))
+summary(model.07)
+scoreMod(model.07)
+```
+
+The additional variable for this model is killsPK, or kills per kilometer. It is a ratio designed to separate players who are aggressive and engaging other players during the match vs. those who travel far but play a more stealthy strategy. The model suggests each additional unit of killsPK would decrease the log odds of entering the top 10 by 0.794
+
+#### Conclusions for Logistic Regression
+
+Of the models we tried, none achieved an increase in accuracy that would justify the additional complexity. We also ran into issues with complex variables. The rank deficient error suggest some values of the combination of two categorical variables did not have any observations assigned. In this case it would make sense to code a special variable to account for this. The other warning suggests some combination of variables allowed for perfrect seperation of top.10, but which variables was not clear from the EDA. For logistic regression, the best model we found was the one at the end of objective one.
 
 ### Linear Discriminant Analysis
 Our next prediction tool is Linear Discriminant Analysis (LDA) for classifying the player as Top 10 or not. We have taken a subset of the continuous variables from our EDA to build the LDA off of. Before running the LDA, we will cover two things: a LASSO call to eliminate less important variables and assumption checking.
@@ -802,7 +850,140 @@ From the library documentation:
 
 ## Exploratory Data Analysis
 
-## Code
+### Logistic Regression
+
+#### Original logistic model with VIF  
+```{r appendix_obj1_model1, message=FALSE, include=TRUE, echo=FALSE, eval=TRUE}
+## Logistic Model 1 - "The Kitchen Sink"
+model.main <- glm(top.10~assists + boosts + heals + teamKills + weaponsAcquired +
+                    damageDealt + headshotKills + kills + killStreaks + roadKills + vehicleDestroys + 
+                    killPlace + killPoints  + rankPoints + winPoints +
+                    longestKill + swimDistance + rideDistance + walkDistance,
+                  data= train_obj1, family = binomial(link="logit"))
+summary(model.main)
+vif(model.main) ## Kill points and win points super correlated
+scoreMod(model.main)
+```
+
+#### Full Lasso Variable Reduction
+
+```{r appendix_obj1_lasso, message=FALSE, include=TRUE, echo=FALSE, eval=TRUE}
+set.seed(1234)
+x <- model.matrix(top.10~assists + boosts + heals + teamKills + weaponsAcquired +
+                    damageDealt + headshotKills + kills + killStreaks + roadKills + vehicleDestroys + 
+                    killPlace + killPoints  + rankPoints + winPoints +
+                    longestKill + swimDistance + rideDistance + walkDistance, data=train_obj1)
+cv.lasso <- cv.glmnet(x, train_obj1$top.10, alpha = 1, family = "binomial")
+plot(cv.lasso)
+
+cv.lasso$lambda.min
+coef(cv.lasso, cv.lasso$lambda.min)
+cv.lasso$lambda.1se
+coef(cv.lasso, cv.lasso$lambda.1se)
+
+
+model.lasso <- glmnet(x, train_obj1$top.10, alpha = 1, family = "binomial",
+                      lambda = cv.lasso$lambda.1se)
+
+coef(model.lasso)
+
+x.test <- model.matrix(top.10~assists + boosts + heals + teamKills + weaponsAcquired +
+                    damageDealt + headshotKills + kills + killStreaks + roadKills + vehicleDestroys + 
+                    killPlace + killPoints  + rankPoints + winPoints +
+                    longestKill + swimDistance + rideDistance + walkDistance, data=test_obj1)
+
+lasso.pred <- predict(model.lasso, newx = x.test)
+plotRoc(lasso.pred,test_obj1$top.10)
+confusionMatrix(as.factor(as.numeric(lasso.pred > 0.5)), test_obj1$top.10, positive = "1")
+
+model.final.lasso <- glm(top.10~assists + boosts + heals + teamKills + weaponsAcquired +
+                    kills + killStreaks + roadKills + vehicleDestroys + 
+                    killPlace + rankPoints + winPoints +
+                    longestKill + swimDistance + rideDistance + walkDistance,
+                  data= train_obj1, family = binomial(link="logit"))
+summary(model.final.lasso)
+vif(model.final.lasso) ## Kill points and win points super correlated
+```
+
+#### Final Model for Objective 1
+
+```{r appendix_obj1_finald, message=FALSE, include=TRUE, echo=FALSE, eval=TRUE}
+#assists + boosts + heals + weaponsAcquired + kills + walkDistance
+model.inf4 <- glm(top.10~assists + boosts + heals + weaponsAcquired + killPlace + walkDistance ,
+                  data= train_obj1, family = binomial(link="logit"))
+summary(model.inf4)
+#vif(model.inf4)
+#plot(model.inf4, which = 4, id.n = 3)
+
+#scoreMod(model.inf4)
+```
+
+### Complex Logistic Regression
+
+#### Variable Definitions  
+```{r appendix_vardef, message=FALSE, include=TRUE, echo=TRUE, eval=TRUE}
+#train_obj1 <- train %>% mutate(
+#  DurationCut = as.factor(ifelse(matchDuration > 1600,1,0)),
+#  kpCut = as.factor(ifelse(killPoints > 0,1,0)),
+#  wpCut = as.factor(ifelse(winPoints > 0,1,0)),
+#  rpCut = as.factor(ifelse(rankPoints > -1,1,0)),
+#  boostCut = as.factor(ifelse(boosts >= 2,1,0)),
+#  healCut = as.factor(ifelse(heals >= 2,1,0)),
+#  walkCut = as.factor(ifelse(walkDistance >= 1250,1,0)),
+#  weaponCut = as.factor(ifelse(weaponsAcquired >= 3,1,0)),
+#  killCut = as.factor(ifelse(kills >= 2,1,0)),
+#  assistCut = as.factor(ifelse(assists >= 2,1,0)),
+#  damageCut = as.factor(ifelse(damageDealt >= 250,1,0)),
+#  streakCut = as.factor(ifelse(killStreaks >= 1,1,0)),
+#  killsPK = kills/(walkDistance/1000+1),
+#  damageKill = kills/(damageDealt+1)
+#)
+```
+
+#### Full Model List
+```{r appendix_obj2_mods, message=FALSE, include=TRUE, echo=FALSE, eval=TRUE}
+model.01 <- glm(top.10~boosts + assists + weaponsAcquired + killPlace + walkDistance + boostCut:killPlace ,
+                  data= train_obj1, family = binomial(link="logit"))
+summary(model.01)
+scoreMod(model.01)
+
+model.02 <- glm(top.10~boosts + assists + weaponsAcquired + killPlace + walkDistance + kpCut:killPlace,
+                data= train_obj1, family = binomial(link="logit"))
+summary(model.02)
+scoreMod(model.02)
+
+model.03 <- glm(top.10~boosts + assists + weaponsAcquired + killPlace + walkDistance + walkDistance*killPlace ,
+                data= train_obj1, family = binomial(link="logit"))
+summary(model.03)
+scoreMod(model.03)
+
+model.04 <- glm(top.10~boosts + assists + weaponsAcquired + killPlace + walkDistance + walkBin ,
+                data= train_obj1, family = binomial(link="logit"))
+summary(model.04)
+scoreMod(model.04)
+
+model.05 <- glm(top.10~boosts + assists + weaponsAcquired + killPlace + walkDistance + kpCut +  kpCut:killPlace,
+                data= train_obj1, family = binomial(link="logit"))
+summary(model.05)
+scoreMod(model.05)
+
+model.06 <- glm(top.10~boosts + assists + weaponsAcquired + killPlace + walkDistance + damageCut:streakCut,
+                data= train_obj1, family = binomial(link="logit"))
+summary(model.06)
+scoreMod(model.06)
+
+model.07 <- glm(top.10~boosts + assists + weaponsAcquired + killPlace + walkDistance + killsPK,
+                data= train_obj1, family = binomial(link="logit"))
+summary(model.07)
+scoreMod(model.07)
+
+model.08 <- glm(top.10~boosts + assists + weaponsAcquired + killPlace + walkDistance + damageKill + killsPK,
+                data= train_obj1, family = binomial(link="logit"))
+summary(model.08)
+scoreMod(model.08)
+```
+
+
 
 ### LDA
 

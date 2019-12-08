@@ -45,9 +45,7 @@ model.main <- glm(top.10~assists + boosts + heals + teamKills + weaponsAcquired 
                     longestKill + swimDistance + rideDistance + walkDistance,
                   data= train, family = binomial(link="logit"))
 summary(model.main)
-broom::tidy(model.main)
 vif(model.main) ## Kill points and win points super correlated
-  
 scoreMod(model.main)
 
 ## Next going to look at finding best lambda for lasso, then do a lasso search for variables

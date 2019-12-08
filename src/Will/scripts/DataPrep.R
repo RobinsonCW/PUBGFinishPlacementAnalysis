@@ -1,9 +1,9 @@
 ## Data Preparation 
 library(tidyverse)
-setwd("C:/Users/William/OneDrive/MSDS_6372_AppliedStatistics/project2/PUBGFinishPlacementAnalysis")
-solo <- read_csv("data/pubg_solo_game_types.csv") %>% select(-c("DBNOs","revives"))
-trainDownSampled <- read_csv("data/pubg_solo_game_types_train_downsampled.csv") %>% select(-c("DBNOs","revives"))
-test <- read_csv("data/pubg_solo_game_types_test_full.csv") %>% select(-c("DBNOs","revives"))
+setwd("C:/Users/William/OneDrive/MSDS_6372_AppliedStatistics/project2/PUBGFinishPlacementAnalysis") 
+solo <- read_csv("data/pubg_solo_game_types.csv") %>% dplyr::select(-c("DBNOs","revives"))
+trainDownSampled <- read_csv("data/pubg_solo_game_types_train_downsampled.csv") %>% dplyr::select(-c("DBNOs","revives"))
+test <- read_csv("data/pubg_solo_game_types_test_full.csv") %>% dplyr::select(-c("DBNOs","revives"))
 
 solo$top.10 <- as.factor(solo$top.10)
 test$top.10 <- as.factor(test$top.10)
@@ -22,8 +22,9 @@ killCut = as.factor(ifelse(kills >= 2,1,0)),
 assistCut = as.factor(ifelse(assists >= 2,1,0)),
 damageCut = as.factor(ifelse(damageDealt >= 250,1,0)),
 streakCut = as.factor(ifelse(killStreaks >= 1,1,0)),
-killsPK = kills/(walkDistance+1/1000),
-damageKill = kills/(damageDealt+1)
+killsPK = kills/(walkDistance/1000+1),
+damageKill = kills/(damageDealt+1),
+walkBin = cut(walkDistance, c(0,500,1000,1500,2000,2500,3000,3500,4000,4500,5000,20000))
 )
 
 test <- test %>% mutate(
@@ -39,8 +40,9 @@ test <- test %>% mutate(
   assistCut = as.factor(ifelse(assists >= 2,1,0)),
   damageCut = as.factor(ifelse(damageDealt >= 250,1,0)),
   streakCut = as.factor(ifelse(killStreaks >= 1,1,0)),
-  killsPK = kills/(walkDistance+1/1000),
-  damageKill = kills/(damageDealt+1)
+  killsPK = kills/(walkDistance/1000+1),
+  damageKill = kills/(damageDealt+1),
+  walkBin = cut(walkDistance, c(0,500,1000,1500,2000,2500,3000,3500,4000,4500,5000,20000))
 )
 
 trainDownSampled <- trainDownSampled %>% mutate(
@@ -56,8 +58,9 @@ trainDownSampled <- trainDownSampled %>% mutate(
   assistCut = as.factor(ifelse(assists >= 2,1,0)),
   damageCut = as.factor(ifelse(damageDealt >= 250,1,0)),
   streakCut = as.factor(ifelse(killStreaks >= 1,1,0)),
-  killsPK = kills/(walkDistance+1/1000),
-  damageKill = kills/(damageDealt+1)
+  killsPK = kills/(walkDistance/1000+1),
+  damageKill = kills/(damageDealt+1),
+  walkBin = cut(walkDistance, c(0,500,1000,1500,2000,2500,3000,3500,4000,4500,5000,20000))
 )
 varGroupKill <- c("damageDealt","headshotKills","kills","killStreaks","roadKills","vehicleDestroys","weaponsAcquired")
 varGroupTeam <- c("assists","boosts","heals","teamKills")

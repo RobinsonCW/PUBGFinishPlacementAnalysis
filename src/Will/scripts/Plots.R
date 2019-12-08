@@ -35,6 +35,9 @@ ggplot(solo,aes(x=top.10, y=swimDistance, fill=top.10)) + geom_boxplot()
 ggplot(solo,aes(x=top.10, y=rideDistance, fill=top.10)) + geom_boxplot()
 ggplot(solo,aes(x=top.10, y=longestKill, fill=top.10)) + geom_boxplot()
 
+ggplot(solo,aes(x=top.10, y=killsPK, fill=top.10)) + geom_boxplot()
+ggplot(solo,aes(x=top.10, y=damageKill, fill=top.10)) + geom_boxplot()
+
 ggplot(solo,aes(x=top.10, y=heals, fill=top.10)) + geom_boxplot()
 ggplot(solo,aes(x=top.10, y=kills, fill=top.10)) + geom_boxplot()
 ggplot(solo,aes(x=top.10, y=damageDealt, fill=top.10)) + geom_boxplot()
@@ -66,7 +69,7 @@ pairsData <- sample %>% keep(is.numeric)
 pairsData$top.10 <- sample$top.10
 
 ggpairs(data = pairsData, mapping = aes(color = top.10),
-        columns = c("assists" , "boosts" , "heals" , "weaponsAcquired" , "killPlace" , "walkDistance","top.10"))
+        columns = c("assists" , "boosts" , "heals" , "weaponsAcquired" , "killPlace" , "walkDistance","killsPK","damageKill","top.10"))
 ggpairs(data = pairsData, mapping = aes(color = top.10),
         columns = c(varGroupPoints,"top.10"))
 ggpairs(data = pairsData, mapping = aes(color = top.10),
