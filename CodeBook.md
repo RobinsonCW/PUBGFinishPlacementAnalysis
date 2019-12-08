@@ -2,10 +2,6 @@
 
 This code book provides information about the data set and environment setup.
 
-## Data
-
-The data was provided by our professor for the purposes of this mock project.
-
 ## R Session Info
 
 Provides session output from the environment used during the execution of our project.
