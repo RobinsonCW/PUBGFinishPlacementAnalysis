@@ -189,9 +189,9 @@ ggpairs(data = pairsData, mapping = aes(color = top.10),
         columns = c("assists" , "boosts" , "heals" , "weaponsAcquired" , "killPlace" , "walkDistance","top.10"))
 ```
 
-A complete set of pair plots and box plots are available in the EDA appendix. 
+A complete set of pair plots and box plots are available in the EDA appendix. There are a number of frequency tables in the DescriptiveTables script, but it was quite lengthy so it is not included here.
 
-A number of variables are not useful for prediciton. Id, groupID, and matchId are identifiers. MatchType, DBNOs, and Revives are not relevant because we are focusing on the Solo match type. matchDuration, maxPlace, and numGroups are static across any given match, even if they vary individually, so there is no information about individual player performance. Finally, our response variable, top.10, is derived from winPlacePerc, so we cannot use it for prediction.  
+A number of variables are not useful for prediciton. Id, groupID, and matchId are identifiers. MatchType, DBNOs, and Revives are not relevant because we are focusing on the Solo match type. Finally, our response variable, top.10, is derived from winPlacePerc, so we cannot use it for prediction.  
 
 ### PCA
 
@@ -954,15 +954,16 @@ From the library documentation:
 * `mtry`       : Number of variables randomly sampled as candidates at each split. 
 * `cutoff`     : A vector of length equal to number of classes. 
 
-
-## Comparing Competing Models
-
-
-## Model Interpretation
-
-
-## Conclusion
-
+## Overall Comparison of Models and Conclusion
+Model   |AUC     |Sensitivity |Specificity | Error Rate (1 - Accuracy)
+--------|--------|------------|------------|--------------------------
+Logistic regression (simple - final)   | 0.932  | 0.863      | 0.841      | 15.6%
+Logistic regression (complex - model 7)   | 0.936  | 0.895      | 0.840      | 15.4%
+LDA   | 0.941  | 0.575      | 0.961      | 7.94%
+Random forest   | 0.906  | 0.918      | 0.894      | 10.4%
+The logistic regression models both performed well on all four metrics of interest (AUC, sensitivity, specificity, and error rate). Due to the fact that the simple logistic regression model is easier to interpret than the complex version, we prefer this simple model over the complex one. LDA had the highest AUC and lowest error rate. However, due to its low sensitivity, it was the worst model in terms of answering our question of interest: how can we best predict top 10 finishers. Random forest outperformed the logistic models in its error rate and specificity, but not in AUC or sensitivity. Further hyperparameter tuning could improve this model.
+However, due to its overall simplicity and easy interpretability, our preferred model is the simple logistic regression model. Logistic regression in this format allows us to specify the log-odds of placing in the top 10, as shown in the Model Interpretation section of Objective 1.
+Based on the information we gathered from all four methods of modeling this data, we recommend to PUBG players to rank highly in the number of kills per match, walk a lot (or stay in the match long enough to walk a lot), and use boost items to your advantage.
 
 \newpage
 
