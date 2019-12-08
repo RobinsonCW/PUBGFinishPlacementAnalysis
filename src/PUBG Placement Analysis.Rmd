@@ -86,7 +86,24 @@ train <- train %>%
 test <- test %>%
   mutate(top.10 = factor(top.10, labels = c("0", "1")))
 
-
+solo <- solo %>% mutate(
+  top.10 = factor(top.10, labels = c("0", "1")),
+DurationCut = as.factor(ifelse(matchDuration > 1600,1,0)),
+kpCut = as.factor(ifelse(killPoints > 0,1,0)),
+wpCut = as.factor(ifelse(winPoints > 0,1,0)),
+rpCut = as.factor(ifelse(rankPoints > -1,1,0)),
+boostCut = as.factor(ifelse(boosts >= 2,1,0)),
+healCut = as.factor(ifelse(heals >= 2,1,0)),
+walkCut = as.factor(ifelse(walkDistance >= 1250,1,0)),
+weaponCut = as.factor(ifelse(weaponsAcquired >= 3,1,0)),
+killCut = as.factor(ifelse(kills >= 2,1,0)),
+assistCut = as.factor(ifelse(assists >= 2,1,0)),
+damageCut = as.factor(ifelse(damageDealt >= 250,1,0)),
+streakCut = as.factor(ifelse(killStreaks >= 1,1,0)),
+killsPK = kills/(walkDistance/1000+1),
+damageKill = kills/(damageDealt+1),
+walkBin = cut(walkDistance, c(0,500,1000,1500,2000,2500,3000,3500,4000,4500,5000,20000))
+)
 ```
 
 
@@ -160,6 +177,108 @@ top.10           |The target of prediction. This is a percentile winning placeme
 
 ## Exploratory Data Analysis
 
+The data full data set has 65,000 matches, each with data on the players in that match and statistics based on that individual match with only minor exceptions.  We have data on how much damage was dealt, how many kills a player got, and other information like distance travelled and weapons acquired. Below is a pairs plot for some of our core variables. 
+
+```{r eda_pairs, message=FALSE, include=TRUE, echo=FALSE, eval=TRUE}
+set.seed(1234)
+sample <- sample_frac(solo, 0.01) 
+pairsData <- sample %>% keep(is.numeric)
+pairsData$top.10 <- sample$top.10
+
+ggpairs(data = pairsData, mapping = aes(color = top.10),
+        columns = c("assists" , "boosts" , "heals" , "weaponsAcquired" , "killPlace" , "walkDistance","top.10"))
+```
+
+A complete set of pair plots and box plots are available in the EDA appendix. 
+
+A number of variables are not useful for prediciton. Id, groupID, and matchId are identifiers. MatchType, DBNOs, and Revives are not relevant because we are focusing on the Solo match type. matchDuration, maxPlace, and numGroups are static across any given match, even if they vary individually, so there is no information about individual player performance. Finally, our response variable, top.10, is derived from winPlacePerc, so we cannot use it for prediction.  
+
+### PCA
+
+Principle Components Analysis can help us reduce numerical predictors to a few components. These groupings might help us find key variables to use for modeling
+
+```{r PCA_1, message=FALSE, include=TRUE, echo=FALSE, eval=TRUE}
+varsToDrop <- c("rankPoints","maxPlace","winPlacePerc")
+moreDrop <- c("matchDuration","numGroups")
+dataPCsolo <- solo %>% keep(is.numeric) %>% select(-varsToDrop,-moreDrop)
+
+pc.result.solo <-prcomp(dataPCsolo,scale.=TRUE)
+pc.scores.solo<-pc.result.solo$x
+pc.scores.solo<-data.frame(pc.scores.solo)
+pc.scores.solo$top.10 <- solo$top.10
+pc.scores.solo$DurationCut <- solo$DurationCut
+pc.scores.solo$kpCut <- solo$kpCut
+pc.scores.solo$wpCut <- solo$wpCut
+pc.scores.solo$rpCut <- solo$rpCut
+
+pc.result.solo$rotation[,c(1:3)]
+#Scree
+#eigenvals<-(pc.result.solo$sdev)^2
+#plot(1:length(eigenvals),eigenvals/sum(eigenvals),type="l",main="Scree Plot",ylab="Prop. Var. Explained",ylim=c(0,1))
+#cumulative.prop<-cumsum(eigenvals/sum(eigenvals))
+#lines(1:length(eigenvals),cumulative.prop,lty=2)
+
+
+plotPCkp <- function(mydata) {
+  sampleData <- sample_frac(mydata, 0.01)
+  ggplot(data = sampleData, aes(x = PC1, y = PC2)) +
+    geom_point(aes(col=kpCut), size=1, alpha = 0.5)+
+    ggtitle("PCA of PUBG")
+}
+plotPC10 <- function(mydata) {
+  sampleData <- sample_frac(mydata, 0.01)
+  ggplot(data = sampleData, aes(x = PC1, y = PC2)) +
+    geom_point(aes(col=top.10), size=1, alpha = 0.5)+
+    ggtitle("PCA of PUBG")
+}
+
+set.seed(314159)
+plotPCkp(pc.scores.solo)
+plotPC10(pc.scores.solo)
+
+```
+
+We see kills based measures are pretty strong in PC1, and killPoints/Winpoints dominate PC2. Looking at the graph, we get a strange separation. The killPoints variable can explain this, with one group having killPoints = 0 and the other being killPoints > 0. Lets try it one more time without killpoints.
+```{r PCA_2, message=FALSE, include=TRUE, echo=FALSE, eval=TRUE}
+
+## Repeat the analysis without killPoints
+
+dataPCsolo <- solo %>% keep(is.numeric) %>% select(-varsToDrop,-moreDrop,-c("killPoints","winPoints"))
+
+pc.result.solo <-prcomp(dataPCsolo,scale.=TRUE)
+pc.scores.solo<-pc.result.solo$x
+pc.scores.solo<-data.frame(pc.scores.solo)
+pc.scores.solo$top.10 <- solo$top.10
+pc.scores.solo$DurationCut <- solo$DurationCut
+pc.scores.solo$kpCut <- solo$kpCut
+pc.scores.solo$wpCut <- solo$wpCut
+pc.scores.solo$rpCut <- solo$rpCut
+
+pc.result.solo$rotation[,c(1:3)]
+#Scree
+#eigenvals<-(pc.result.solo$sdev)^2
+#plot(1:length(eigenvals),eigenvals/sum(eigenvals),type="l",main="Scree Plot",ylab="Prop. Var. Explained",ylim=c(0,1))
+#cumulative.prop<-cumsum(eigenvals/sum(eigenvals))
+#lines(1:length(eigenvals),cumulative.prop,lty=2)
+
+
+plotPCkp <- function(mydata) {
+  sampleData <- sample_frac(mydata, 0.01)
+  ggplot(data = sampleData, aes(x = PC1, y = PC2)) +
+    geom_point(aes(col=kpCut), size=1, alpha = 0.5)+
+    ggtitle("PCA of PUBG")
+}
+plotPC10 <- function(mydata) {
+  sampleData <- sample_frac(mydata, 0.01)
+  ggplot(data = sampleData, aes(x = PC1, y = PC2)) +
+    geom_point(aes(col=top.10), size=1, alpha = 0.5)+
+    ggtitle("PCA of PUBG")
+}
+
+set.seed(314159)
+plotPC10(pc.scores.solo)
+```
+We are still getting some separation, but it has much improved. We are not getting 100$ separation of the top.10 variable, so PCA alone is not giving us a clear answer as to what makes a top 10 player. 
 
 # Objective I Analysis  
 
@@ -445,10 +564,12 @@ top.10 ~ assists + boosts + heals + weaponsAcquired + killPlace + walkDistance
 
 Additional terms considered in the more complex model are as follows:
 * Dichotomized variables: Two level versions of the original variables, with cutoffs determined by EDA to try to separate top.10 from the rest of the group
-* Binned Variables: These have more levels than the dichotomized versions, to try to capture more complexity
-* Ratios: Key variables are compared against each other in ratio format. For instance, does damage dealt per kill make a difference?
-*	Interactions: multiplicative relationships between key variables. For instance, does increased damage matter if the player is above the boosts cut point?
-*	Full definitions of new variables can be found in Appendix: Complex Logistic Regression
+\begin{itemize}
+  \item Binned Variables: These have more levels than the dichotomized versions, to try to capture more complexity
+  \item Ratios: Key variables are compared against each other in ratio format. For instance, does damage dealt per kill make a difference?
+  \item	Interactions: multiplicative relationships between key variables. For instance, does increased damage matter if the player is above the boosts cut point?
+  \item	Full definitions of new variables can be found in Appendix: Complex Logistic Regression
+\end{itemize}
 
 #### Model Selection
 
@@ -850,6 +971,40 @@ From the library documentation:
 
 ## Exploratory Data Analysis
 
+### Pairs Plots
+
+```{r appendix_eda_pairs, message=FALSE, include=TRUE, echo=FALSE, eval=TRUE}
+ggpairs(data = pairsData, mapping = aes(color = top.10),
+        columns = c(varGroupPoints,"top.10"))
+ggpairs(data = pairsData, mapping = aes(color = top.10),
+        columns = c(varGroupDistance,"top.10"))
+ggpairs(data = pairsData, mapping = aes(color = top.10),
+        columns = c(varGroupKill,"top.10"))
+ggpairs(data = pairsData, mapping = aes(color = top.10),
+        columns = c(varGroupTeam,"top.10"))## Model Apendicies
+```
+
+### Box Plots 
+
+```{r appendix_eda_box, message=FALSE, include=TRUE, echo=FALSE, eval=TRUE}
+ggplot(solo,aes(x=top.10, y=walkDistance/1000, fill=top.10)) + geom_boxplot()
+ggplot(solo,aes(x=top.10, y=swimDistance, fill=top.10)) + geom_boxplot()
+ggplot(solo,aes(x=top.10, y=rideDistance, fill=top.10)) + geom_boxplot()
+ggplot(solo,aes(x=top.10, y=longestKill, fill=top.10)) + geom_boxplot()
+
+ggplot(solo,aes(x=top.10, y=killsPK, fill=top.10)) + geom_boxplot()
+ggplot(solo,aes(x=top.10, y=damageKill, fill=top.10)) + geom_boxplot()
+
+ggplot(solo,aes(x=top.10, y=heals, fill=top.10)) + geom_boxplot()
+ggplot(solo,aes(x=top.10, y=kills, fill=top.10)) + geom_boxplot()
+ggplot(solo,aes(x=top.10, y=damageDealt, fill=top.10)) + geom_boxplot()
+ggplot(solo,aes(x=top.10, y=headshotKills, fill=top.10)) + geom_boxplot()
+ggplot(solo,aes(x=top.10, y=killPoints, fill=top.10)) + geom_boxplot()
+ggplot(solo,aes(x=top.10, y=winPoints, fill=top.10)) + geom_boxplot()
+ggplot(solo,aes(x=top.10, y=killStreaks, fill=top.10)) + geom_boxplot()
+ggplot(solo,aes(x=top.10, y=weaponsAcquired, fill=top.10)) + geom_boxplot()
+ggplot(solo,aes(x=top.10, y=vehicleDestroys, fill=top.10)) + geom_boxplot()
+```
 ### Logistic Regression
 
 #### Original logistic model with VIF  

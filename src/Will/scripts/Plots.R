@@ -69,7 +69,7 @@ pairsData <- sample %>% keep(is.numeric)
 pairsData$top.10 <- sample$top.10
 
 ggpairs(data = pairsData, mapping = aes(color = top.10),
-        columns = c("assists" , "boosts" , "heals" , "weaponsAcquired" , "killPlace" , "walkDistance","killsPK","damageKill","top.10"))
+        columns = c("assists" , "boosts" , "heals" , "weaponsAcquired" , "killPlace" , "walkDistance","top.10"))
 ggpairs(data = pairsData, mapping = aes(color = top.10),
         columns = c(varGroupPoints,"top.10"))
 ggpairs(data = pairsData, mapping = aes(color = top.10),

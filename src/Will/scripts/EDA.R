@@ -14,7 +14,7 @@ workers <- makeCluster(8L)
 registerDoParallel(workers)
 ## Read in the data
 
-train_V2 <- read_csv("C:/Users/William/OneDrive/MSDS_6372_AppliedStatistics/project2/PUBGFinishPlacementAnalysis/data/train_V2.csv")
+train_V2 <- read_csv("C:/Users/William/OneDrive/MSDS_6372_AppliedStatistics/project2/PUBGFinishPlacementAnalysis/data/Will/train_V2.csv")
 #test_V2 <- read_csv("C:/Users/William/OneDrive/MSDS_6372_AppliedStatistics/project2/PUBGFinishPlacementAnalysis/data/test_V2.csv")
 #sample_submission_V2 <- read_csv("C:/Users/William/OneDrive/MSDS_6372_AppliedStatistics/project2/PUBGFinishPlacementAnalysis/data/sample_submission_V2.csv")
 
